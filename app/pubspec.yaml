@@ -1,0 +1,38 @@
+name: solus_frete
+description: Prototipo funcional do aplicativo Solus Frete (TCC).
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  provider: ^6.1.2
+  http: ^1.2.2
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/logo_completo.png
+    - assets/icone_app.png
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/icone_app.png"
+  min_sdk_android: 21
+  web:
+    generate: true
+    image_path: "assets/icone_app.png"
+    background_color: "#032C69"
+    theme_color: "#032C69"
