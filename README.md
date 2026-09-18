@@ -1,4 +1,15 @@
-# Solus Frete — protótipo funcional
+<p align="center">
+  <img src="app/assets/icone_app.png" width="96" alt="Ícone Solus Frete" />
+</p>
+
+<h1 align="center">Solus Frete — protótipo funcional</h1>
+
+<p align="center">
+  <img alt="Flutter" src="https://img.shields.io/badge/Flutter-Dart-02569B?logo=flutter&logoColor=white">
+  <img alt="Node" src="https://img.shields.io/badge/API-Node%20%2B%20Express-339933?logo=node.js&logoColor=white">
+  <img alt="MySQL" src="https://img.shields.io/badge/Banco-MySQL-4479A1?logo=mysql&logoColor=white">
+  <img alt="Status" src="https://img.shields.io/badge/status-prot%C3%B3tipo%20acad%C3%AAmico-informational">
+</p>
 
 Protótipo do aplicativo **Solus Frete**, plataforma de fretes com motoristas parceiros,
 transportadoras e entregas agendadas. Construído para o TCC de Sistemas de Informação
@@ -31,6 +42,13 @@ solus-frete/
 
 ## Como rodar
 
+Clone o repositório antes de tudo:
+
+```bash
+git clone https://github.com/Danilo4009/solus-frete-tcc.git
+cd solus-frete-tcc
+```
+
 ### 1. O app sozinho, sem backend
 
 O protótipo já vem com um repositório em memória que reproduz as mesmas regras da
@@ -47,14 +65,21 @@ Login de demonstração: telefone `11940135904`, senha `solus123` (já preenchid
 
 ### 2. Com o MySQL e a API
 
-**Banco** — a equipe toda aponta para a mesma instância:
+Cada integrante da equipe roda o próprio MySQL local — sem senha pra compartilhar,
+sem expor nada na rede. Todo mundo usa o mesmo `01_schema.sql` e `02_seed.sql`, então
+os dados de teste ficam idênticos em qualquer máquina.
+
+**Banco:**
 
 ```bash
 mysql -u root -p < db/01_schema.sql
 mysql -u root -p solus_frete < db/02_seed.sql
 ```
 
-**API**:
+> Mac com `brew install mysql`: o `root` não tem senha por padrão, então use
+> `mysql -u root` (sem `-p`) nos dois comandos.
+
+**API:**
 
 ```bash
 cd api
@@ -73,10 +98,9 @@ static const String baseUrl = 'http://10.0.2.2:3333';  // emulador Android
 // celular físico na mesma rede: http://SEU_IP_LOCAL:3333
 ```
 
-Para a equipe compartilhar o banco, qualquer MySQL acessível serve: uma máquina da
-equipe com a porta liberada na rede local, um servidor da faculdade, ou uma instância
-gerenciada gratuita. Só mude `DB_HOST` no `.env` de cada um — o esquema e o seed são
-os mesmos.
+Se preferir um banco único compartilhado pela equipe (todos veem os mesmos pedidos em
+tempo real), qualquer MySQL acessível pela rede serve — só ajustar `DB_HOST` no `.env`
+de cada um para apontar pra essa instância em vez do `localhost`.
 
 ### 3. Mapa
 
@@ -168,6 +192,16 @@ PATCH  /perfil/notificacoes/:id/lida
 
 Rotas sob `/enderecos`, `/pedidos` e `/perfil` exigem `Authorization: Bearer <token>`,
 obtido no login. Senha de todos os usuários do seed: `solus123`.
+
+## Como contribuir
+
+1. Crie uma branch a partir da `main`: `git checkout -b minha-feature`.
+2. Faça as alterações e commit.
+3. Abra um Pull Request pra `main` — quem revisar confere se a API e o app continuam
+   rodando antes de aprovar.
+
+Se você não tem permissão de push direto neste repositório, faça um fork e abra o PR
+a partir dele.
 
 ## O que ficou fora de propósito
 
