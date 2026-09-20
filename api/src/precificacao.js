@@ -59,4 +59,6 @@ function repasseParceiro(valorTotal) {
   return Math.round(valorTotal * (1 - comissao) * 100) / 100;
 }
 
-module.exports = { distanciaKm, distanciaRota, calcularFrete, aplicarCupom, repasseParceiro };
+module.exports = {
+  distanciaKm, distanciaRota, calcularFrete, aplicarCupom, repasseParceiro, FATOR_ROTA,
+};

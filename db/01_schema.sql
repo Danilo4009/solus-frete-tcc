@@ -50,6 +50,11 @@ CREATE TABLE empresa (
   cidade                VARCHAR(120) NULL,
   uf                    CHAR(2)      NULL,
   situacao_homologacao  ENUM('pendente','aprovada','reprovada') NOT NULL DEFAULT 'pendente',
+  latitude              DECIMAL(10,7) NULL,   -- base da transportadora (cotacao por raio)
+  longitude             DECIMAL(10,7) NULL,
+  raio_atuacao_km       SMALLINT UNSIGNED NOT NULL DEFAULT 60,
+  avaliacao_media       DECIMAL(3,2) NOT NULL DEFAULT 0,
+  total_fretes          INT UNSIGNED NOT NULL DEFAULT 0,
   criado_em             DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_empresa_cnpj (cnpj),
   CONSTRAINT fk_empresa_responsavel FOREIGN KEY (responsavel_usuario_id)
@@ -100,6 +105,7 @@ CREATE TABLE motorista (
   disponivel          TINYINT(1) NOT NULL DEFAULT 0,
   latitude            DECIMAL(10,7) NULL,
   longitude           DECIMAL(10,7) NULL,
+  raio_atuacao_km     SMALLINT UNSIGNED NOT NULL DEFAULT 40,
   avaliacao_media     DECIMAL(3,2) NOT NULL DEFAULT 0,
   total_corridas      INT UNSIGNED NOT NULL DEFAULT 0,
   criado_em           DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -148,6 +154,23 @@ CREATE TABLE tabela_preco (
   ativo             TINYINT(1) NOT NULL DEFAULT 1,
   UNIQUE KEY uk_preco (cidade, categoria_id, nivel_servico, vigente_desde),
   CONSTRAINT fk_preco_categoria FOREIGN KEY (categoria_id) REFERENCES categoria_veiculo(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- preco proprio de cada transportadora, por categoria de veiculo.
+-- Motoristas autonomos usam tabela_preco (nivel 'padrao') da plataforma.
+CREATE TABLE transportadora_preco (
+  id                BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  empresa_id        BIGINT UNSIGNED NOT NULL,
+  categoria_id      BIGINT UNSIGNED NOT NULL,
+  tarifa_base       DECIMAL(10,2) NOT NULL,
+  valor_por_km      DECIMAL(10,2) NOT NULL,
+  valor_por_parada  DECIMAL(10,2) NOT NULL DEFAULT 0,
+  valor_hora        DECIMAL(10,2) NULL,
+  valor_minimo      DECIMAL(10,2) NOT NULL DEFAULT 0,
+  ativo             TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uk_transp_preco (empresa_id, categoria_id),
+  CONSTRAINT fk_tp_empresa FOREIGN KEY (empresa_id) REFERENCES empresa(id) ON DELETE CASCADE,
+  CONSTRAINT fk_tp_categoria FOREIGN KEY (categoria_id) REFERENCES categoria_veiculo(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 CREATE TABLE servico_adicional (
@@ -372,14 +395,16 @@ CREATE TABLE avaliacao (
   id         BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   pedido_id  BIGINT UNSIGNED NOT NULL,
   autor_id   BIGINT UNSIGNED NOT NULL,
-  avaliado_id BIGINT UNSIGNED NOT NULL,
+  avaliado_id BIGINT UNSIGNED NULL,      -- motorista avaliado
+  empresa_id  BIGINT UNSIGNED NULL,      -- transportadora avaliada (quando nao ha motorista)
   nota       TINYINT UNSIGNED NOT NULL,
   comentario VARCHAR(500) NULL,
   criado_em  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uk_avaliacao (pedido_id, autor_id),
   CONSTRAINT fk_aval_pedido FOREIGN KEY (pedido_id) REFERENCES pedido(id) ON DELETE CASCADE,
   CONSTRAINT fk_aval_autor FOREIGN KEY (autor_id) REFERENCES usuario(id) ON DELETE CASCADE,
-  CONSTRAINT fk_aval_avaliado FOREIGN KEY (avaliado_id) REFERENCES usuario(id) ON DELETE CASCADE
+  CONSTRAINT fk_aval_avaliado FOREIGN KEY (avaliado_id) REFERENCES usuario(id) ON DELETE CASCADE,
+  CONSTRAINT fk_aval_empresa FOREIGN KEY (empresa_id) REFERENCES empresa(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
 -- ---------------------------------------------------------------------

@@ -32,7 +32,6 @@ class NovoPedido extends ChangeNotifier {
   String pagador = 'remetente';
 
   // --- preferencias ---
-  bool favoritosPrimeiro = false;
   bool exigeComprovante = true;
   String? observacaoMotorista;
   String? contatoTelefone;
@@ -40,7 +39,7 @@ class NovoPedido extends ChangeNotifier {
 
   // --- cotacao ---
   Cotacao? cotacao;
-  String nivelSelecionado = 'padrao';
+  String? _chaveEscolhida; // parceiro escolhido entre as ofertas da cotacao
   bool cotando = false;
   String? erro;
 
@@ -48,11 +47,12 @@ class NovoPedido extends ChangeNotifier {
 
   bool get roteiroCompleto => coleta != null && entregas.isNotEmpty;
 
-  OpcaoCotacao? get opcaoSelecionada {
-    final opcoes = cotacao?.opcoes;
-    if (opcoes == null) return null;
-    for (final o in opcoes) {
-      if (o.nivel == nivelSelecionado) return o;
+  /// Oferta do parceiro escolhido, se ele ainda estiver na cotacao atual.
+  OfertaParceiro? get ofertaEscolhida {
+    final ofertas = cotacao?.ofertas;
+    if (ofertas == null || _chaveEscolhida == null) return null;
+    for (final o in ofertas) {
+      if (o.chave == _chaveEscolhida) return o;
     }
     return null;
   }
@@ -80,6 +80,7 @@ class NovoPedido extends ChangeNotifier {
     final faltas = <String>[];
     if (!roteiroCompleto) faltas.add('Informe coleta e entrega');
     if (categoria == null) faltas.add('Selecione o veiculo');
+    if (ofertaEscolhida == null) faltas.add('Escolha um parceiro');
     if (formaPagamento == null) faltas.add('Selecione a forma de pagamento');
     if (agendado && quando == null) faltas.add('Informe a data e hora do agendamento');
     if (agendado && quando != null && !quando!.isAfter(DateTime.now())) {
@@ -176,8 +177,8 @@ class NovoPedido extends ChangeNotifier {
     notifyListeners();
   }
 
-  void definirNivel(String nivel) {
-    nivelSelecionado = nivel;
+  void escolherOferta(OfertaParceiro oferta) {
+    _chaveEscolhida = oferta.chave;
     notifyListeners();
   }
 
@@ -185,11 +186,6 @@ class NovoPedido extends ChangeNotifier {
     cupom = (codigo == null || codigo.isEmpty) ? null : codigo.toUpperCase();
     notifyListeners();
     cotar();
-  }
-
-  void alternarFavoritosPrimeiro(bool valor) {
-    favoritosPrimeiro = valor;
-    notifyListeners();
   }
 
   void alternarComprovante(bool valor) {
@@ -215,6 +211,7 @@ class NovoPedido extends ChangeNotifier {
         horas: horasContratadas,
         cupom: cupom,
       );
+      if (ofertaEscolhida == null) _chaveEscolhida = null;
     } catch (e) {
       erro = e.toString();
     } finally {
@@ -225,12 +222,13 @@ class NovoPedido extends ChangeNotifier {
 
   Future<Pedido?> confirmar() async {
     if (!podeConfirmar) return null;
-    final opcao = opcaoSelecionada;
-    if (opcao == null) return null;
+    final oferta = ofertaEscolhida;
+    if (oferta == null) return null;
 
     final pedido = await _repo.criarPedido({
       'categoriaId': categoria!.id,
-      'nivelServico': nivelSelecionado,
+      'parceiroTipo': oferta.tipo,
+      'parceiroId': oferta.parceiroId,
       'tipoRetirada': agendado ? 'agendada' : 'imediata',
       'agendadoPara': quando,
       'modalidade': horasContratadas == null ? 'entrega' : 'periodo',
@@ -240,17 +238,16 @@ class NovoPedido extends ChangeNotifier {
       'carga': carga,
       'formaPagamento': formaPagamento,
       'pagador': pagador,
-      'favoritosPrimeiro': favoritosPrimeiro,
       'exigeComprovante': exigeComprovante,
       'observacaoMotorista': observacaoMotorista,
       'contatoTelefone': contatoTelefone,
       'cupom': cupom,
       'aceiteItensProibidos': true,
       'distanciaKm': cotacao!.distanciaKm,
-      'valorFrete': opcao.valorFrete,
-      'valorAdicionais': opcao.valorAdicionais,
-      'valorDesconto': opcao.desconto,
-      'valorTotal': opcao.total,
+      'valorFrete': oferta.valorFrete,
+      'valorAdicionais': oferta.valorAdicionais,
+      'valorDesconto': oferta.desconto,
+      'valorTotal': oferta.total,
     });
     return pedido;
   }
@@ -266,12 +263,11 @@ class NovoPedido extends ChangeNotifier {
     carga = const Carga();
     formaPagamento = null;
     pagador = 'remetente';
-    favoritosPrimeiro = false;
     exigeComprovante = true;
     observacaoMotorista = null;
     cupom = null;
     cotacao = null;
-    nivelSelecionado = 'padrao';
+    _chaveEscolhida = null;
     erro = null;
     notifyListeners();
   }

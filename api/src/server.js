@@ -33,6 +33,7 @@ app.use('/perfil',    require('./routes/perfil'));
 app.use((_req, res) => res.status(404).json({ erro: 'Rota nao encontrada' }));
 
 app.use((erro, _req, res, _next) => {
+  if (erro.status) return res.status(erro.status).json({ erro: erro.message });
   console.error(erro);
   res.status(500).json({ erro: 'Erro interno', detalhe: erro.message });
 });

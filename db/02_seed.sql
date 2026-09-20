@@ -262,8 +262,127 @@ INSERT INTO notificacao (usuario_id, categoria, titulo, mensagem, pedido_id) VAL
 (@cli_pf,'promocional','Cupom SOLUS10','Use SOLUS10 e ganhe R$ 10 no proximo frete.', NULL),
 (@cli_pj,'operacional','Frete agendado confirmado','Coleta marcada para 19/09 as 08:00.', @p3);
 
+-- ---------------------------------------------------------------------
+-- Parceiros da cotacao (dados gerados para a demonstracao, regiao de Sao Paulo)
+-- Cada cotacao mostra ate 10 opcoes: 4 motoristas autonomos + 6 transportadoras.
+--   motoristas: 5 por categoria de veiculo, preco pela tabela_preco da plataforma
+--   transportadoras: 10 + TransLog, cada uma com preco proprio (transportadora_preco)
+-- ---------------------------------------------------------------------
+CREATE TEMPORARY TABLE tmp_n (n INT PRIMARY KEY);
+INSERT INTO tmp_n VALUES (1),(2),(3),(4),(5);
+
+CREATE TEMPORARY TABLE tmp_modelo (
+  codigo VARCHAR(40) PRIMARY KEY, marca VARCHAR(60), modelo VARCHAR(60), cnh CHAR(1));
+INSERT INTO tmp_modelo VALUES
+('moto','Honda','CG 160 Cargo','A'),
+('carro_hatch','Fiat','Argo','B'),
+('carro','Chevrolet','Onix Plus','B'),
+('utilitario','Fiat','Strada','B'),
+('van','Renault','Master','B'),
+('carreto','Mercedes','Sprinter Chassi','C'),
+('caminhao_35','Volkswagen','Delivery 9.170','C'),
+('caminhao_75','Mercedes','Accelo 1016','C');
+
+-- motoristas autonomos: usuario, motorista e veiculo
+INSERT INTO usuario (tipo, nome, sobrenome, telefone, telefone_verificado, email, senha_hash)
+SELECT 'motorista',
+       ELT(1 + MOD(g.i, 16), 'Carlos','Marcos','Paulo','Andre','Bruno','Diego','Fabio','Gustavo',
+                             'Henrique','Igor','Julio','Leandro','Mauricio','Nelson','Otavio','Renato'),
+       ELT(1 + MOD(g.i * 5, 12), 'Silva','Santos','Oliveira','Souza','Pereira','Costa','Ribeiro',
+                                 'Almeida','Carvalho','Gomes','Martins','Rocha'),
+       CONCAT('1197', LPAD(g.i, 7, '0')), 1, CONCAT('parceiro', g.i, '@solusfrete.dev'), @H
+  FROM (SELECT (c.ordem - 1) * 5 + n.n AS i FROM categoria_veiculo c CROSS JOIN tmp_n n) g;
+
+INSERT INTO motorista (usuario_id, transportadora_id, cpf, cnh_numero, cnh_categoria, cnh_validade,
+                       situacao_homologacao, disponivel, latitude, longitude, avaliacao_media, total_corridas)
+SELECT u.id, NULL,
+       CONCAT(LPAD(g.i, 3, '0'), '.000.000-', LPAD(MOD(g.i, 100), 2, '0')),
+       CONCAT('9', LPAD(g.i, 10, '0')), m.cnh, '2029-12-31', 'aprovada',
+       IF(MOD(g.i, 9) = 0, 0, 1),
+       ROUND(-23.5500 + (MOD(g.i * 7, 13) - 6) * 0.014, 7),
+       ROUND(-46.6500 + (MOD(g.i * 11, 17) - 8) * 0.016, 7),
+       IF(MOD(g.i, 11) = 0, 0, ROUND(4.0 + MOD(g.i * 7, 10) * 0.1, 2)),
+       IF(MOD(g.i, 11) = 0, 0, 20 + MOD(g.i * 37, 400))
+  FROM (SELECT (c.ordem - 1) * 5 + n.n AS i, c.codigo
+          FROM categoria_veiculo c CROSS JOIN tmp_n n) g
+  JOIN tmp_modelo m ON m.codigo = g.codigo
+  JOIN usuario u ON u.telefone = CONCAT('1197', LPAD(g.i, 7, '0'));
+
+INSERT INTO veiculo (motorista_id, transportadora_id, categoria_id, placa, marca, modelo, ano,
+                     documento_validade, situacao_homologacao)
+SELECT mo.id, NULL, g.categoria_id, CONCAT('SOL', LPAD(g.i, 4, '0')), m.marca, m.modelo,
+       2018 + MOD(g.i, 7), '2027-12-31', 'aprovada'
+  FROM (SELECT (c.ordem - 1) * 5 + n.n AS i, c.id AS categoria_id, c.codigo
+          FROM categoria_veiculo c CROSS JOIN tmp_n n) g
+  JOIN tmp_modelo m ON m.codigo = g.codigo
+  JOIN usuario u ON u.telefone = CONCAT('1197', LPAD(g.i, 7, '0'))
+  JOIN motorista mo ON mo.usuario_id = u.id;
+
+-- transportadoras: empresa, frota (1 veiculo por categoria) e preco proprio
+CREATE TEMPORARY TABLE tmp_transp (
+  n TINYINT PRIMARY KEY, razao VARCHAR(180), fantasia VARCHAR(180), cidade VARCHAR(120),
+  lat DECIMAL(10,7), lng DECIMAL(10,7), raio SMALLINT, fator DECIMAL(4,2),
+  nota DECIMAL(3,2), fretes INT);
+INSERT INTO tmp_transp VALUES
+(1,'RapidoSul Logistica LTDA','RapidoSul','Sao Paulo',-23.5505,-46.6333,80,0.92,4.60,1240),
+(2,'Via Expressa Transportes LTDA','Via Expressa','Guarulhos',-23.4543,-46.5333,70,0.96,4.40,860),
+(3,'Metropole Cargas LTDA','Metropole Cargas','Osasco',-23.5329,-46.7917,60,1.00,4.80,2100),
+(4,'Grande SP Fretes LTDA','Grande SP Fretes','Santo Andre',-23.6639,-46.5383,70,1.05,4.20,540),
+(5,'Barueri Log Transportes LTDA','Barueri Log','Barueri',-23.5057,-46.8790,50,0.89,4.50,730),
+(6,'TransPaulista LTDA','TransPaulista','Sao Paulo',-23.5614,-46.6559,90,1.10,4.90,3300),
+(7,'Carga Certa Transportes LTDA','Carga Certa','Sao Bernardo do Campo',-23.6914,-46.5646,60,0.94,4.10,410),
+(8,'EntregaJa Logistica LTDA','EntregaJa','Sao Paulo',-23.5200,-46.7300,60,1.02,0.00,0),
+(9,'Norte Sul Transportes LTDA','Norte Sul','Sao Paulo',-23.4890,-46.6100,75,1.15,4.70,1500),
+(10,'Rota Segura Cargas LTDA','Rota Segura','Osasco',-23.5480,-46.8200,25,0.97,4.30,650);
+
+INSERT INTO empresa (tipo, cnpj, razao_social, nome_fantasia, registro_antt, telefone, email, cidade, uf,
+                     situacao_homologacao, latitude, longitude, raio_atuacao_km, avaliacao_media, total_fretes)
+SELECT 'transportadora', CONCAT('55.', LPAD(t.n, 3, '0'), '.000/0001-', LPAD(t.n, 2, '0')),
+       t.razao, t.fantasia, CONCAT('RNTRC ', 200000 + t.n),
+       CONCAT('113000', LPAD(t.n, 4, '0')), CONCAT('contato', t.n, '@parceiro.solusfrete.dev'),
+       t.cidade, 'SP', 'aprovada', t.lat, t.lng, t.raio, t.nota, t.fretes
+  FROM tmp_transp t;
+
+INSERT INTO veiculo (motorista_id, transportadora_id, categoria_id, placa, marca, modelo, ano,
+                     documento_validade, situacao_homologacao)
+SELECT NULL, e.id, c.id, CONCAT('TRP', LPAD(t.n, 2, '0'), LPAD(c.ordem, 2, '0')), m.marca, m.modelo,
+       2019 + MOD(t.n + c.ordem, 6), '2027-12-31', 'aprovada'
+  FROM tmp_transp t
+  JOIN empresa e ON e.cnpj = CONCAT('55.', LPAD(t.n, 3, '0'), '.000/0001-', LPAD(t.n, 2, '0'))
+  CROSS JOIN categoria_veiculo c
+  JOIN tmp_modelo m ON m.codigo = c.codigo;
+
+INSERT INTO transportadora_preco (empresa_id, categoria_id, tarifa_base, valor_por_km,
+                                  valor_por_parada, valor_hora, valor_minimo)
+SELECT e.id, tp.categoria_id,
+       ROUND(tp.tarifa_base * t.fator, 2), ROUND(tp.valor_por_km * t.fator, 2),
+       ROUND(tp.valor_por_parada * t.fator, 2), ROUND(tp.valor_hora * t.fator, 2),
+       ROUND(tp.valor_minimo * t.fator, 2)
+  FROM tmp_transp t
+  JOIN empresa e ON e.cnpj = CONCAT('55.', LPAD(t.n, 3, '0'), '.000/0001-', LPAD(t.n, 2, '0'))
+  JOIN tabela_preco tp ON tp.cidade = 'Sao Paulo' AND tp.nivel_servico = 'padrao' AND tp.ativo = 1;
+
+-- TransLog (ja cadastrada acima) passa a participar da cotacao com o caminhao 3/4
+UPDATE empresa SET latitude = -23.5329, longitude = -46.7917, raio_atuacao_km = 60,
+                   avaliacao_media = 4.70, total_fretes = 64
+ WHERE id = @emp_tr;
+
+INSERT INTO transportadora_preco (empresa_id, categoria_id, tarifa_base, valor_por_km,
+                                  valor_por_parada, valor_hora, valor_minimo)
+SELECT @emp_tr, tp.categoria_id, tp.tarifa_base, tp.valor_por_km, tp.valor_por_parada,
+       tp.valor_hora, tp.valor_minimo
+  FROM tabela_preco tp
+  JOIN categoria_veiculo c ON c.id = tp.categoria_id
+ WHERE tp.cidade = 'Sao Paulo' AND tp.nivel_servico = 'padrao' AND c.codigo = 'caminhao_35';
+
+DROP TEMPORARY TABLE tmp_transp;
+DROP TEMPORARY TABLE tmp_modelo;
+DROP TEMPORARY TABLE tmp_n;
+
 SELECT 'Seed concluido' AS status,
        (SELECT COUNT(*) FROM usuario) AS usuarios,
        (SELECT COUNT(*) FROM categoria_veiculo) AS categorias,
        (SELECT COUNT(*) FROM tabela_preco) AS precos,
-       (SELECT COUNT(*) FROM pedido) AS pedidos;
+       (SELECT COUNT(*) FROM pedido) AS pedidos,
+       (SELECT COUNT(*) FROM motorista WHERE transportadora_id IS NULL) AS motoristas_autonomos,
+       (SELECT COUNT(*) FROM empresa WHERE tipo = 'transportadora') AS transportadoras;

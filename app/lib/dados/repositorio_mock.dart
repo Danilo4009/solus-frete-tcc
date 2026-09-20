@@ -3,6 +3,7 @@ import 'dart:math';
 import '../core/config.dart';
 import '../modelos/modelos.dart';
 import 'repositorio.dart';
+import 'repositorio_api.dart' show ErroApi;
 
 /// Implementacao em memoria: espelha as regras da API para o prototipo
 /// rodar sem backend. Mesmo motor de preco do servidor.
@@ -23,12 +24,6 @@ class RepositorioMock implements Repositorio {
   double _saldo = 120.00;
   final List<TransacaoCarteira> _transacoes = [];
 
-  static const _motoristas = [
-    ('Jose Bezerra', 4.85, 312),
-    ('Aline Souza', 4.92, 128),
-    ('Rafael Nunes', 4.70, 64),
-  ];
-
   // ---------------------------------------------------------------- preco
   static const _tarifas = {
     // codigo: (base, porKm, porParada, minimo, hora)
@@ -41,8 +36,6 @@ class RepositorioMock implements Repositorio {
     'caminhao_35': (90.0, 7.40, 10.0, 140.0, 160.0),
     'caminhao_75': (140.0, 9.80, 10.0, 210.0, 220.0),
   };
-
-  static const _fatores = {'expresso': 1.45, 'padrao': 1.00, 'economico': 0.74};
 
   void _semear() {
     const servicos = [
@@ -174,7 +167,7 @@ class RepositorioMock implements Repositorio {
       id: 2, codigo: 'SF-000002', situacao: 'em_transito', nivelServico: 'padrao',
       tipoRetirada: 'imediata', categoriaNome: 'Carreto', distanciaKm: 18.6,
       valorFrete: 148.72, valorAdicionais: 70, valorTotal: 218.72,
-      formaPagamento: 'pix', favoritosPrimeiro: true,
+      formaPagamento: 'pix',
       motoristaNome: 'Jose Bezerra', motoristaAvaliacao: 4.85, veiculoPlaca: 'ABC1D23',
       criadoEm: DateTime.now().subtract(const Duration(hours: 1)),
       paradas: [
@@ -316,14 +309,102 @@ class RepositorioMock implements Repositorio {
     return _demora(novo);
   }
 
-  // -------------------------------------------------------------- cotacao
-  @override
-  Future<Cotacao> cotar({
+  // ------------------------------------------------------------- parceiros
+  static const _nomesMotoristas = [
+    'Carlos Silva', 'Marcos Santos', 'Paulo Oliveira', 'Andre Souza', 'Bruno Pereira',
+    'Diego Costa', 'Fabio Ribeiro', 'Gustavo Almeida', 'Henrique Carvalho', 'Igor Gomes',
+    'Julio Martins', 'Leandro Rocha',
+  ];
+
+  // nome, latitude, longitude, raio (km), fator de preco, nota, fretes
+  static const _transportadoras = [
+    ('RapidoSul', -23.5505, -46.6333, 80, 0.92, 4.60, 1240),
+    ('Via Expressa', -23.4543, -46.5333, 70, 0.96, 4.40, 860),
+    ('Metropole Cargas', -23.5329, -46.7917, 60, 1.00, 4.80, 2100),
+    ('Grande SP Fretes', -23.6639, -46.5383, 70, 1.05, 4.20, 540),
+    ('Barueri Log', -23.5057, -46.8790, 50, 0.89, 4.50, 730),
+    ('TransPaulista', -23.5614, -46.6559, 90, 1.10, 4.90, 3300),
+    ('Carga Certa', -23.6914, -46.5646, 60, 0.94, 4.10, 410),
+    ('EntregaJa', -23.5200, -46.7300, 60, 1.02, 0.0, 0),
+    ('Norte Sul', -23.4890, -46.6100, 75, 1.15, 4.70, 1500),
+    ('Rota Segura', -23.5480, -46.8200, 25, 0.97, 4.30, 650),
+  ];
+
+  static const _modelos = {
+    'moto': 'Honda CG 160 Cargo',
+    'carro_hatch': 'Fiat Argo',
+    'carro': 'Chevrolet Onix Plus',
+    'utilitario': 'Fiat Strada',
+    'van': 'Renault Master',
+    'carreto': 'Mercedes Sprinter Chassi',
+    'caminhao_35': 'Volkswagen Delivery 9.170',
+    'caminhao_75': 'Mercedes Accelo 1016',
+  };
+
+  // Cada cotacao mostra ate 10 opcoes: 4 motoristas autonomos + 6 transportadoras.
+  static const _vagasMotoristas = 4;
+  static const _totalOfertas = 10;
+  static const _velocidadeMediaKmh = 30;
+  static const _minutosManuseio = 15;
+  // No prototipo o parceiro escolhido aceita sozinho depois deste tempo.
+  static const _aceiteAutomatico = Duration(seconds: 8);
+
+  late final List<_Parceiro> _parceiros = _gerarParceiros();
+  final Map<int, _ContextoCotacao> _contextos = {};
+
+  List<_Parceiro> _gerarParceiros() {
+    final lista = <_Parceiro>[];
+    // 5 motoristas autonomos por categoria (mesma regra do seed da API)
+    for (final c in _veiculos) {
+      for (var k = 0; k < 5; k++) {
+        final i = (c.id - 1) * 5 + k + 1;
+        final semNota = i % 11 == 0;
+        lista.add(_Parceiro(
+          tipo: 'motorista',
+          id: c.id * 100 + k,
+          nome: _nomesMotoristas[i % _nomesMotoristas.length],
+          categoriaId: c.id,
+          lat: -23.55 + ((i * 7) % 13 - 6) * 0.014,
+          lng: -46.65 + ((i * 11) % 17 - 8) * 0.016,
+          raioKm: 40,
+          fator: 1.0,
+          nota: semNota ? 0 : 4.0 + ((i * 7) % 10) / 10,
+          fretes: semNota ? 0 : 20 + (i * 37) % 400,
+          disponivel: i % 9 != 0,
+        ));
+      }
+    }
+    lista.add(const _Parceiro(tipo: 'motorista', id: 1, nome: 'Jose Bezerra',
+        categoriaId: 6, lat: -23.5489, lng: -46.6388, raioKm: 40, fator: 1.0,
+        nota: 4.85, fretes: 312));
+    lista.add(const _Parceiro(tipo: 'motorista', id: 2, nome: 'Aline Souza',
+        categoriaId: 1, lat: -23.5320, lng: -46.7920, raioKm: 40, fator: 1.0,
+        nota: 4.92, fretes: 128));
+    for (var n = 0; n < _transportadoras.length; n++) {
+      final t = _transportadoras[n];
+      lista.add(_Parceiro(tipo: 'transportadora', id: n + 1, nome: t.$1, categoriaId: 0,
+          lat: t.$2, lng: t.$3, raioKm: t.$4, fator: t.$5, nota: t.$6, fretes: t.$7));
+    }
+    return lista;
+  }
+
+  double _haversine(double la1, double lo1, double la2, double lo2) {
+    final dLat = (la2 - la1) * pi / 180;
+    final dLon = (lo2 - lo1) * pi / 180;
+    final h = pow(sin(dLat / 2), 2) +
+        cos(la1 * pi / 180) * cos(la2 * pi / 180) * pow(sin(dLon / 2), 2);
+    return 2 * 6371 * asin(sqrt(h.toDouble()));
+  }
+
+  /// Mesma regra da API: motorista autonomo usa a tabela da plataforma e a
+  /// transportadora tem preco proprio (fator sobre a tabela).
+  Cotacao _montarCotacao({
     required int categoriaId,
     required List<Endereco> paradas,
     List<int> servicos = const [],
     int? horas,
     String? cupom,
+    Set<String> excluir = const {},
   }) {
     final categoria = _veiculos.firstWhere((v) => v.id == categoriaId);
     final tarifa = _tarifas[categoria.codigo]!;
@@ -331,16 +412,20 @@ class RepositorioMock implements Repositorio {
     final extras = categoria.servicos
         .where((s) => servicos.contains(s.id))
         .fold<double>(0, (soma, s) => soma + s.preco);
+    final coleta = paradas.first;
 
-    final opcoes = <OpcaoCotacao>[];
-    const rotulos = {
-      'expresso': ('Expresso', 'Alocacao prioritaria para entregas urgentes.'),
-      'padrao': ('Padrao', 'Equilibrio entre prazo e preco.'),
-      'economico': ('Economico', 'Carga agrupada, sem urgencia. Mais barato.'),
-    };
+    double distanciaAteColeta(_Parceiro p) =>
+        coleta.latitude == null || coleta.longitude == null
+            ? 0
+            : _haversine(p.lat, p.lng, coleta.latitude!, coleta.longitude!) * 1.35;
 
-    for (final nivel in const ['expresso', 'padrao', 'economico']) {
-      final f = _fatores[nivel]!;
+    OfertaParceiro? montar(_Parceiro p) {
+      if (excluir.contains(p.chave) || !p.disponivel) return null;
+      if (p.tipo == 'motorista' && p.categoriaId != categoriaId) return null;
+      final dist = distanciaAteColeta(p);
+      if (dist > p.raioKm) return null;
+
+      final f = p.fator;
       double base;
       if (horas != null && horas > 0) {
         base = tarifa.$5 * f * horas;
@@ -354,29 +439,89 @@ class RepositorioMock implements Repositorio {
       if (cupom != null && cupom.toUpperCase() == 'MUDANCA15' && frete >= 150) {
         desconto = double.parse((frete * 0.15).toStringAsFixed(2));
       }
-      opcoes.add(OpcaoCotacao(
-        nivel: nivel,
-        nome: rotulos[nivel]!.$1,
-        descricao: rotulos[nivel]!.$2,
+      final chegada = (dist / _velocidadeMediaKmh * 60).round();
+      return OfertaParceiro(
+        chave: p.chave,
+        tipo: p.tipo,
+        parceiroId: p.id,
+        nome: p.nome,
+        nota: p.nota,
+        totalFretes: p.fretes,
+        favorito: p.tipo == 'motorista' && _favoritos.any((fav) => fav.nome == p.nome),
+        veiculo: _modelos[categoria.codigo]!,
+        distanciaColetaKm: double.parse(dist.toStringAsFixed(1)),
+        chegadaColetaMin: chegada,
+        prazoEntregaMin:
+            chegada + (km / _velocidadeMediaKmh * 60).round() + _minutosManuseio,
         valorFrete: frete,
         valorAdicionais: extras,
         desconto: desconto,
         total: double.parse((frete + extras - desconto).toStringAsFixed(2)),
-        recomendado: nivel == 'padrao',
-      ));
+      );
     }
 
-    return _demora(Cotacao(
+    // favoritos primeiro, depois avaliados (maior nota), depois o mais proximo
+    int ordenar(OfertaParceiro a, OfertaParceiro b) {
+      final fav = (b.favorito ? 1 : 0) - (a.favorito ? 1 : 0);
+      if (fav != 0) return fav;
+      final avaliado = (b.nota > 0 ? 1 : 0) - (a.nota > 0 ? 1 : 0);
+      if (avaliado != 0) return avaliado;
+      final nota = b.nota.compareTo(a.nota);
+      return nota != 0 ? nota : a.distanciaColetaKm.compareTo(b.distanciaColetaKm);
+    }
+
+    final motoristas = <OfertaParceiro>[];
+    final transportadoras = <OfertaParceiro>[];
+    for (final p in _parceiros) {
+      final oferta = montar(p);
+      if (oferta == null) continue;
+      (p.tipo == 'motorista' ? motoristas : transportadoras).add(oferta);
+    }
+    motoristas.sort(ordenar);
+    transportadoras.sort(ordenar);
+
+    const vagasTransportadoras = _totalOfertas - _vagasMotoristas;
+    final escolhidas = [
+      ...motoristas.take(_vagasMotoristas),
+      ...transportadoras.take(vagasTransportadoras),
+    ];
+    if (escolhidas.length < _totalOfertas) {
+      final sobras = [
+        ...motoristas.skip(_vagasMotoristas),
+        ...transportadoras.skip(vagasTransportadoras),
+      ]..sort(ordenar);
+      escolhidas.addAll(sobras.take(_totalOfertas - escolhidas.length));
+    }
+    escolhidas.sort((a, b) => a.total.compareTo(b.total));
+
+    return Cotacao(
       distanciaKm: km,
       paradas: paradas.length,
-      opcoes: opcoes,
-      cupomAplicado: opcoes.any((o) => o.desconto > 0) ? cupom?.toUpperCase() : null,
+      ofertas: escolhidas,
+      cupomAplicado: escolhidas.any((o) => o.desconto > 0) ? cupom?.toUpperCase() : null,
       avisos: const [
         'Pedagio e estacionamento nao estao inclusos e sao acertados direto com o parceiro.',
         'O peso declarado nao pode exceder a capacidade do veiculo escolhido.',
       ],
-    ));
+    );
   }
+
+  // -------------------------------------------------------------- cotacao
+  @override
+  Future<Cotacao> cotar({
+    required int categoriaId,
+    required List<Endereco> paradas,
+    List<int> servicos = const [],
+    int? horas,
+    String? cupom,
+  }) =>
+      _demora(_montarCotacao(
+        categoriaId: categoriaId,
+        paradas: paradas,
+        servicos: servicos,
+        horas: horas,
+        cupom: cupom,
+      ));
 
   // -------------------------------------------------------------- pedidos
   static const _fluxo = [
@@ -384,61 +529,87 @@ class RepositorioMock implements Repositorio {
     'carregando', 'em_transito', 'entregue', 'concluido',
   ];
 
-  @override
-  Future<Pedido> criarPedido(Map<String, dynamic> corpo) {
-    final categoria = _veiculos.firstWhere((v) => v.id == corpo['categoriaId'] as int);
-    final paradas = (corpo['paradas'] as List<Endereco>);
-    final servicosIds = (corpo['servicos'] as List<int>?) ?? const [];
-    final id = ++_proximoId;
-    final favoritosPrimeiro = corpo['favoritosPrimeiro'] == true;
+  Pedido _comOferta(Pedido pedido, OfertaParceiro oferta, List<EventoPedido> eventos,
+          {String? situacao}) =>
+      pedido.copiarCom(
+        situacao: situacao,
+        valorFrete: oferta.valorFrete,
+        valorAdicionais: oferta.valorAdicionais,
+        valorDesconto: oferta.desconto,
+        valorTotal: oferta.total,
+        motoristaNome: oferta.ehMotorista ? oferta.nome : null,
+        motoristaAvaliacao: oferta.ehMotorista ? oferta.nota : null,
+        transportadoraNome: oferta.ehMotorista ? null : oferta.nome,
+        transportadoraAvaliacao: oferta.ehMotorista ? null : oferta.nota,
+        veiculoPlaca: 'SOL${(oferta.parceiroId % 10000).toString().padLeft(4, '0')}',
+        eventos: eventos,
+      );
 
-    final pedido = Pedido(
+  void _debitarCarteira(Pedido pedido, double valor, String descricao) {
+    if (pedido.formaPagamento != 'carteira') return;
+    _saldo -= valor;
+    _transacoes.insert(0, TransacaoCarteira(tipo: 'pagamento', valor: -valor,
+        descricao: descricao, quando: DateTime.now()));
+  }
+
+  @override
+  Future<Pedido> criarPedido(Map<String, dynamic> corpo) async {
+    final categoriaId = corpo['categoriaId'] as int;
+    final categoria = _veiculos.firstWhere((v) => v.id == categoriaId);
+    final paradas = corpo['paradas'] as List<Endereco>;
+    final servicosIds = (corpo['servicos'] as List<int>?) ?? const <int>[];
+    final horas = corpo['horasContratadas'] as int?;
+    final cupom = corpo['cupom'] as String?;
+    final chave = '${corpo['parceiroTipo']}-${corpo['parceiroId']}';
+
+    final cotacao = _montarCotacao(
+        categoriaId: categoriaId, paradas: paradas, servicos: servicosIds,
+        horas: horas, cupom: cupom);
+    final oferta = cotacao.ofertas.where((o) => o.chave == chave).firstOrNull;
+    if (oferta == null) {
+      throw ErroApi('Este parceiro nao esta mais disponivel. Escolha outra opcao.', 422);
+    }
+
+    final id = ++_proximoId;
+    final agora = DateTime.now();
+    final base = Pedido(
       id: id,
       codigo: 'SF-${id.toString().padLeft(6, '0')}',
       situacao: 'aguardando_alocacao',
-      nivelServico: corpo['nivelServico'] as String,
+      nivelServico: 'padrao',
       tipoRetirada: corpo['tipoRetirada'] as String,
       agendadoPara: corpo['agendadoPara'] as DateTime?,
       categoriaNome: categoria.nome,
-      distanciaKm: (corpo['distanciaKm'] as num).toDouble(),
-      valorFrete: (corpo['valorFrete'] as num).toDouble(),
-      valorAdicionais: (corpo['valorAdicionais'] as num?)?.toDouble() ?? 0,
-      valorDesconto: (corpo['valorDesconto'] as num?)?.toDouble() ?? 0,
-      valorTotal: (corpo['valorTotal'] as num).toDouble(),
+      distanciaKm: cotacao.distanciaKm,
+      valorFrete: oferta.valorFrete,
+      valorTotal: oferta.total,
       formaPagamento: corpo['formaPagamento'] as String?,
       pagador: (corpo['pagador'] ?? 'remetente') as String,
-      favoritosPrimeiro: favoritosPrimeiro,
       observacaoMotorista: corpo['observacaoMotorista'] as String?,
-      criadoEm: DateTime.now(),
+      criadoEm: agora,
       paradas: [
         for (var i = 0; i < paradas.length; i++)
           Parada(tipo: i == 0 ? 'coleta' : 'entrega', endereco: paradas[i]),
       ],
       carga: corpo['carga'] as Carga?,
       servicos: categoria.servicos.where((s) => servicosIds.contains(s.id)).toList(),
-      eventos: [
-        EventoPedido(situacao: 'cotado', descricao: 'Pedido criado e cotado',
-            quando: DateTime.now()),
-        EventoPedido(
-            situacao: 'aguardando_alocacao',
-            descricao: favoritosPrimeiro && _favoritos.isNotEmpty
-                ? 'Ofertado aos seus motoristas favoritos (${_favoritos.length})'
-                : 'Ofertado a 6 parceiros da base',
-            quando: DateTime.now()),
-      ],
     );
+    final pedido = _comOferta(base, oferta, [
+      EventoPedido(situacao: 'cotado', descricao: 'Pedido criado com ${oferta.nome}',
+          quando: agora),
+      EventoPedido(situacao: 'aguardando_alocacao',
+          descricao: 'Aguardando aceite de ${oferta.nome}', quando: agora),
+    ]);
 
     _pedidos.insert(0, pedido);
+    _contextos[id] = _ContextoCotacao(
+        categoriaId: categoriaId, paradas: paradas, servicos: servicosIds,
+        horas: horas, cupom: cupom)
+      ..parceiroAtual = chave;
     _operacionais.insert(0, Notificacao(id: ++_proximoId, titulo: 'Pedido criado',
-        mensagem: 'Estamos buscando um parceiro para o pedido ${pedido.codigo}.',
-        quando: DateTime.now()));
-
-    if (pedido.formaPagamento == 'carteira') {
-      _saldo -= pedido.valorTotal;
-      _transacoes.insert(0, TransacaoCarteira(tipo: 'pagamento',
-          valor: -pedido.valorTotal, descricao: 'Pedido ${pedido.codigo}',
-          quando: DateTime.now()));
-    }
+        mensagem: 'Enviamos o pedido ${pedido.codigo} para ${oferta.nome}. Aguarde o aceite.',
+        quando: agora));
+    _debitarCarteira(pedido, pedido.valorTotal, 'Pedido ${pedido.codigo}');
 
     return _demora(pedido);
   }
@@ -463,34 +634,48 @@ class RepositorioMock implements Repositorio {
     return _demora(lista.toList());
   }
 
+  /// O parceiro aceitou: o pedido passa a "alocado".
+  Pedido _aceitar(int indice) {
+    final atual = _pedidos[indice];
+    final agora = DateTime.now();
+    final novo = atual.copiarCom(situacao: 'alocado', eventos: [
+      ...atual.eventos,
+      EventoPedido(situacao: 'alocado',
+          descricao: '${atual.parceiroNome} aceitou o pedido', quando: agora),
+    ]);
+    _pedidos[indice] = novo;
+    _operacionais.insert(0, Notificacao(id: ++_proximoId, titulo: 'Pedido ${atual.codigo}',
+        mensagem: '${atual.parceiroNome} aceitou o seu pedido.', quando: agora));
+    return novo;
+  }
+
   @override
-  Future<Pedido> obterPedido(int id) =>
-      _demora(_pedidos.firstWhere((p) => p.id == id));
+  Future<Pedido> obterPedido(int id) {
+    final indice = _pedidos.indexWhere((p) => p.id == id);
+    var pedido = _pedidos[indice];
+    if (pedido.aguardandoAceite && pedido.parceiroNome != null && pedido.eventos.isNotEmpty) {
+      final desde = pedido.eventos.last.quando;
+      if (desde != null && DateTime.now().difference(desde) >= _aceiteAutomatico) {
+        pedido = _aceitar(indice);
+      }
+    }
+    return _demora(pedido);
+  }
 
   @override
   Future<Pedido> avancarPedido(int id) {
     final indice = _pedidos.indexWhere((p) => p.id == id);
     final atual = _pedidos[indice];
+    if (atual.aguardandoEscolha) return _demora(atual);
     final posicao = _fluxo.indexOf(atual.situacao);
     if (posicao < 0 || posicao + 1 >= _fluxo.length) return _demora(atual);
     final proxima = _fluxo[posicao + 1];
+    if (proxima == 'alocado' && atual.parceiroNome != null) {
+      return _demora(_aceitar(indice));
+    }
 
-    final motorista = _motoristas[_rnd.nextInt(_motoristas.length)];
-    final atualizado = Pedido(
-      id: atual.id, codigo: atual.codigo, situacao: proxima,
-      nivelServico: atual.nivelServico, tipoRetirada: atual.tipoRetirada,
-      agendadoPara: atual.agendadoPara, categoriaNome: atual.categoriaNome,
-      distanciaKm: atual.distanciaKm, valorFrete: atual.valorFrete,
-      valorAdicionais: atual.valorAdicionais, valorDesconto: atual.valorDesconto,
-      valorTotal: atual.valorTotal, formaPagamento: atual.formaPagamento,
-      pagador: atual.pagador, favoritosPrimeiro: atual.favoritosPrimeiro,
-      motoristaNome: atual.motoristaNome ??
-          (proxima == 'alocado' ? motorista.$1 : null),
-      motoristaAvaliacao: atual.motoristaAvaliacao ??
-          (proxima == 'alocado' ? motorista.$2 : null),
-      veiculoPlaca: atual.veiculoPlaca ?? (proxima == 'alocado' ? 'ABC1D23' : null),
-      observacaoMotorista: atual.observacaoMotorista,
-      criadoEm: atual.criadoEm,
+    final atualizado = atual.copiarCom(
+      situacao: proxima,
       paradas: [
         for (final p in atual.paradas)
           Parada(
@@ -503,13 +688,9 @@ class RepositorioMock implements Repositorio {
             concluidaEm: p.concluidaEm,
           ),
       ],
-      carga: atual.carga, servicos: atual.servicos,
       eventos: [
         ...atual.eventos,
-        EventoPedido(situacao: proxima,
-            descricao: proxima == 'alocado'
-                ? '${motorista.$1} aceitou o pedido'
-                : 'Atualizacao de etapa',
+        EventoPedido(situacao: proxima, descricao: 'Atualizacao de etapa',
             quando: DateTime.now()),
       ],
     );
@@ -523,6 +704,78 @@ class RepositorioMock implements Repositorio {
   }
 
   @override
+  Future<Cotacao> cotarPedido(int id) async {
+    final ctx = _contextos[id];
+    final pedido = _pedidos.firstWhere((p) => p.id == id);
+    if (ctx == null || !pedido.aguardandoEscolha) {
+      throw ErroApi('Este pedido nao esta aguardando a escolha de um parceiro', 409);
+    }
+    return _demora(_montarCotacao(
+      categoriaId: ctx.categoriaId, paradas: ctx.paradas, servicos: ctx.servicos,
+      horas: ctx.horas, cupom: ctx.cupom, excluir: ctx.recusados,
+    ));
+  }
+
+  @override
+  Future<Pedido> recusarParceiro(int id) async {
+    final indice = _pedidos.indexWhere((p) => p.id == id);
+    final atual = _pedidos[indice];
+    final ctx = _contextos[id];
+    if (!atual.aguardandoAceite || atual.parceiroNome == null || ctx == null) {
+      throw ErroApi('So e possivel simular a recusa enquanto o parceiro ainda nao aceitou', 409);
+    }
+    final agora = DateTime.now();
+    final nome = atual.parceiroNome!;
+    if (ctx.parceiroAtual != null) ctx.recusados.add(ctx.parceiroAtual!);
+    ctx.parceiroAtual = null;
+
+    final novo = atual.copiarCom(situacao: 'cotado', limparParceiro: true, eventos: [
+      ...atual.eventos,
+      EventoPedido(situacao: 'cotado',
+          descricao: '$nome recusou o pedido. Escolha outro parceiro.', quando: agora),
+    ]);
+    _pedidos[indice] = novo;
+    if (atual.formaPagamento == 'carteira') {
+      _saldo += atual.valorTotal;
+      _transacoes.insert(0, TransacaoCarteira(tipo: 'estorno', valor: atual.valorTotal,
+          descricao: 'Pedido ${atual.codigo} - parceiro recusou', quando: agora));
+    }
+    _operacionais.insert(0, Notificacao(id: ++_proximoId, titulo: 'Pedido ${atual.codigo}',
+        mensagem: '$nome nao pode atender. Escolha outro parceiro para continuar.',
+        quando: agora));
+    return _demora(novo);
+  }
+
+  @override
+  Future<Pedido> trocarParceiro(int id, OfertaParceiro oferta) async {
+    final indice = _pedidos.indexWhere((p) => p.id == id);
+    final atual = _pedidos[indice];
+    final ctx = _contextos[id];
+    if (!atual.aguardandoEscolha || ctx == null) {
+      throw ErroApi('Este pedido nao esta aguardando a escolha de um parceiro', 409);
+    }
+    // recalcula: o preco nunca vem da tela
+    final nova = _montarCotacao(
+      categoriaId: ctx.categoriaId, paradas: ctx.paradas, servicos: ctx.servicos,
+      horas: ctx.horas, cupom: ctx.cupom, excluir: ctx.recusados,
+    ).ofertas.where((o) => o.chave == oferta.chave).firstOrNull;
+    if (nova == null) {
+      throw ErroApi('Este parceiro nao esta mais disponivel. Escolha outra opcao.', 422);
+    }
+
+    final agora = DateTime.now();
+    final novo = _comOferta(atual, nova, [
+      ...atual.eventos,
+      EventoPedido(situacao: 'aguardando_alocacao',
+          descricao: 'Aguardando aceite de ${nova.nome}', quando: agora),
+    ], situacao: 'aguardando_alocacao');
+    _pedidos[indice] = novo;
+    ctx.parceiroAtual = nova.chave;
+    _debitarCarteira(novo, novo.valorTotal, 'Pedido ${novo.codigo}');
+    return _demora(novo);
+  }
+
+  @override
   Future<double> cancelarPedido(int id, String motivo) {
     final indice = _pedidos.indexWhere((p) => p.id == id);
     final atual = _pedidos[indice];
@@ -531,25 +784,14 @@ class RepositorioMock implements Repositorio {
         ? double.parse((atual.valorTotal * 0.15).toStringAsFixed(2))
         : 0.0;
 
-    _pedidos[indice] = Pedido(
-      id: atual.id, codigo: atual.codigo, situacao: 'cancelado',
-      nivelServico: atual.nivelServico, tipoRetirada: atual.tipoRetirada,
-      agendadoPara: atual.agendadoPara, categoriaNome: atual.categoriaNome,
-      distanciaKm: atual.distanciaKm, valorFrete: atual.valorFrete,
-      valorAdicionais: atual.valorAdicionais, valorDesconto: atual.valorDesconto,
-      valorTotal: atual.valorTotal, formaPagamento: atual.formaPagamento,
-      pagador: atual.pagador, motoristaNome: atual.motoristaNome,
-      criadoEm: atual.criadoEm, paradas: atual.paradas, carga: atual.carga,
-      servicos: atual.servicos,
-      eventos: [
-        ...atual.eventos,
-        EventoPedido(situacao: 'cancelado',
-            descricao: taxa > 0
-                ? 'Cancelado com taxa de R\$ ${taxa.toStringAsFixed(2)}'
-                : 'Cancelado sem taxa',
-            quando: DateTime.now()),
-      ],
-    );
+    _pedidos[indice] = atual.copiarCom(situacao: 'cancelado', eventos: [
+      ...atual.eventos,
+      EventoPedido(situacao: 'cancelado',
+          descricao: taxa > 0
+              ? 'Cancelado com taxa de R\$ ${taxa.toStringAsFixed(2)}'
+              : 'Cancelado sem taxa',
+          quando: DateTime.now()),
+    ]);
     return _demora(taxa);
   }
 
@@ -606,4 +848,53 @@ class RepositorioMock implements Repositorio {
   Future<({List<Notificacao> operacionais, List<Notificacao> promocionais})>
       notificacoes() =>
           _demora((operacionais: List.of(_operacionais), promocionais: List.of(_promocionais)));
+}
+
+class _Parceiro {
+  const _Parceiro({
+    required this.tipo,
+    required this.id,
+    required this.nome,
+    required this.categoriaId,
+    required this.lat,
+    required this.lng,
+    required this.raioKm,
+    required this.fator,
+    required this.nota,
+    required this.fretes,
+    this.disponivel = true,
+  });
+
+  final String tipo; // 'motorista' | 'transportadora'
+  final int id;
+  final String nome;
+  final int categoriaId; // 0 = atende todas as categorias (transportadora)
+  final double lat;
+  final double lng;
+  final int raioKm;
+  final double fator;
+  final double nota;
+  final int fretes;
+  final bool disponivel;
+
+  String get chave => '$tipo-$id';
+}
+
+/// Dados necessarios para refazer a cotacao de um pedido depois da recusa do parceiro.
+class _ContextoCotacao {
+  _ContextoCotacao({
+    required this.categoriaId,
+    required this.paradas,
+    required this.servicos,
+    this.horas,
+    this.cupom,
+  });
+
+  final int categoriaId;
+  final List<Endereco> paradas;
+  final List<int> servicos;
+  final int? horas;
+  final String? cupom;
+  final Set<String> recusados = {};
+  String? parceiroAtual;
 }

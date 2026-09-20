@@ -164,7 +164,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
   @override
   Widget build(BuildContext context) {
     final rascunho = context.watch<NovoPedido>();
-    final opcao = rascunho.opcaoSelecionada;
+    final opcao = rascunho.ofertaEscolhida;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Revisar e confirmar')),
@@ -228,8 +228,15 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                     rotulo: 'Veiculo',
                     valor: rascunho.categoria?.nome ?? '-'),
                 _Linha(
-                    rotulo: 'Nivel de servico',
-                    valor: opcao?.nome ?? rascunho.nivelSelecionado),
+                    rotulo: 'Parceiro',
+                    valor: opcao == null
+                        ? '-'
+                        : '${opcao.nome} (${opcao.rotuloTipo.toLowerCase()})'),
+                _Linha(
+                    rotulo: 'Prazo estimado',
+                    valor: opcao == null
+                        ? '-'
+                        : 'entrega em ~${duracao(opcao.prazoEntregaMin)}'),
                 if (rascunho.horasContratadas != null)
                   _Linha(
                       rotulo: 'Contratacao',
@@ -252,9 +259,6 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                 _Linha(
                     rotulo: 'Comprovante',
                     valor: rascunho.exigeComprovante ? 'Exigido' : 'Nao exigido'),
-                _Linha(
-                    rotulo: 'Favoritos primeiro',
-                    valor: rascunho.favoritosPrimeiro ? 'Sim' : 'Nao'),
               ],
             ),
           ),

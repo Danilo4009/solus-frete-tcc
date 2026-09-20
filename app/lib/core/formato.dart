@@ -12,6 +12,14 @@ String dataCurta(DateTime? d) => d == null ? '-' : _dataCurta.format(d);
 
 String km(num valor) => '${valor.toStringAsFixed(1).replaceAll('.', ',')} km';
 
+/// 45 -> "45 min"; 75 -> "1h15".
+String duracao(int minutos) {
+  if (minutos < 60) return '$minutos min';
+  final h = minutos ~/ 60;
+  final m = minutos % 60;
+  return m == 0 ? '${h}h' : '${h}h${m.toString().padLeft(2, '0')}';
+}
+
 String rotuloSituacao(String situacao) {
   switch (situacao) {
     case 'rascunho':

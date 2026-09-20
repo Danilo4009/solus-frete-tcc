@@ -23,4 +23,19 @@ function autenticar(req, res, next) {
   }
 }
 
-module.exports = { gerarToken, autenticar };
+// Identifica o usuario quando ha token valido, mas nao bloqueia quem nao tem.
+function autenticarOpcional(req, _res, next) {
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7) : null;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, SEGREDO);
+      req.usuario = { id: payload.sub, tipo: payload.tipo, nome: payload.nome };
+    } catch {
+      // token invalido: segue como anonimo
+    }
+  }
+  next();
+}
+
+module.exports = { gerarToken, autenticar, autenticarOpcional };

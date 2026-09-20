@@ -42,6 +42,16 @@ abstract class Repositorio {
 
   Future<Pedido> avancarPedido(int id);
 
+  /// Novas opcoes de parceiro para um pedido que voltou a "cotado" depois
+  /// da recusa do parceiro escolhido.
+  Future<Cotacao> cotarPedido(int id);
+
+  /// Prototipo: simula a recusa do parceiro escolhido, sem depender do app dele.
+  Future<Pedido> recusarParceiro(int id);
+
+  /// Escolhe outro parceiro para um pedido que voltou a "cotado".
+  Future<Pedido> trocarParceiro(int id, OfertaParceiro oferta);
+
   Future<double> cancelarPedido(int id, String motivo);
 
   Future<void> avaliarPedido(int id, int nota, String? comentario, bool favoritar);

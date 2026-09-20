@@ -6,6 +6,7 @@ import '../core/tema.dart';
 import '../core/widgets/comuns.dart';
 import '../estado/novo_pedido.dart';
 import '../modelos/modelos.dart';
+import 'cotacoes.dart';
 import 'detalhes_carga.dart';
 import 'revisao.dart';
 import 'selecao_endereco.dart';
@@ -653,17 +654,6 @@ class _DetalhesPedido extends StatelessWidget {
           ),
           const Divider(indent: 16, endIndent: 16),
           SwitchListTile(
-            value: rascunho.favoritosPrimeiro,
-            onChanged: rascunho.alternarFavoritosPrimeiro,
-            secondary: const Icon(Icons.star_outline, color: Cores.primaria),
-            title: const Text('Motoristas favoritos primeiro'),
-            subtitle: const Text(
-              'Seus parceiros de confianca recebem a oferta antes da base geral',
-              style: TextStyle(fontSize: 12),
-            ),
-          ),
-          const Divider(indent: 16, endIndent: 16),
-          SwitchListTile(
             value: rascunho.exigeComprovante,
             onChanged: rascunho.alternarComprovante,
             secondary: const Icon(Icons.assignment_turned_in_outlined,
@@ -715,23 +705,22 @@ class _Aviso extends StatelessWidget {
   }
 }
 
-/// Folha fixa no rodape com as opcoes de preco e o botao de avancar.
-class _FolhaCotacao extends StatefulWidget {
+/// Folha fixa no rodape: resumo do roteiro, parceiro escolhido e botao de avancar.
+class _FolhaCotacao extends StatelessWidget {
   const _FolhaCotacao({required this.rascunho});
 
   final NovoPedido rascunho;
 
-  @override
-  State<_FolhaCotacao> createState() => _FolhaCotacaoState();
-}
-
-class _FolhaCotacaoState extends State<_FolhaCotacao> {
-  bool _expandida = true;
+  void _escolher(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const TelaCotacoes()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final rascunho = widget.rascunho;
     final cotacao = rascunho.cotacao;
+    final oferta = rascunho.ofertaEscolhida;
 
     return Container(
       decoration: BoxDecoration(
@@ -748,28 +737,14 @@ class _FolhaCotacaoState extends State<_FolhaCotacao> {
       ),
       child: SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            InkWell(
-              onTap: () => setState(() => _expandida = !_expandida),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Column(
-                  children: [
-                    Icon(_expandida ? Icons.keyboard_arrow_down : Icons.keyboard_arrow_up,
-                        color: Cores.textoFraco),
-                    if (!_expandida)
-                      const Text('Ver todas as opcoes de preco',
-                          style: TextStyle(fontSize: 12.5, color: Cores.textoFraco)),
-                  ],
-                ),
-              ),
-            ),
-            if (rascunho.cotando)
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Row(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (rascunho.cotando)
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     SizedBox(
@@ -778,19 +753,14 @@ class _FolhaCotacaoState extends State<_FolhaCotacao> {
                       child: CircularProgressIndicator(strokeWidth: 2.2),
                     ),
                     SizedBox(width: 12),
-                    Text('Calculando a cotacao...'),
+                    Text('Buscando parceiros na sua regiao...'),
                   ],
-                ),
-              )
-            else if (cotacao == null)
-              const Padding(
-                padding: EdgeInsets.all(20),
-                child: Text('Complete o roteiro para ver o preco'),
-              )
-            else ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+                )
+              else if (cotacao == null)
+                const Text('Complete o roteiro e escolha o veiculo para ver os parceiros',
+                    textAlign: TextAlign.center)
+              else ...[
+                Row(
                   children: [
                     const Icon(Icons.route_outlined, size: 16, color: Cores.textoFraco),
                     const SizedBox(width: 6),
@@ -814,175 +784,45 @@ class _FolhaCotacaoState extends State<_FolhaCotacao> {
                       ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              for (final opcao in _visiveis(cotacao.opcoes, rascunho))
-                _OpcaoPreco(
-                  opcao: opcao,
-                  selecionada: rascunho.nivelSelecionado == opcao.nivel,
-                  onTap: () => rascunho.definirNivel(opcao.nivel),
-                  onDetalhe: () => _detalharPreco(context, opcao, cotacao.avisos),
-                ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: FilledButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const TelaRevisao()),
+                const SizedBox(height: 10),
+                if (cotacao.ofertas.isEmpty)
+                  const Text(
+                    'Nenhum parceiro disponivel para este veiculo na regiao da coleta. '
+                    'Tente outra categoria.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Cores.alerta),
+                  )
+                else if (oferta == null) ...[
+                  FilledButton.icon(
+                    onPressed: () => _escolher(context),
+                    icon: const Icon(Icons.groups_2_outlined),
+                    label: Text('Escolher entre ${cotacao.ofertas.length} parceiros'),
                   ),
-                  child: const Text('Proximo passo'),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  List<OpcaoCotacao> _visiveis(List<OpcaoCotacao> opcoes, NovoPedido rascunho) {
-    if (_expandida) return opcoes;
-    return opcoes.where((o) => o.nivel == rascunho.nivelSelecionado).toList();
-  }
-
-  void _detalharPreco(BuildContext context, OpcaoCotacao opcao, List<String> avisos) {
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (contexto) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const TituloSecao('Detalhes do preco'),
-              _FichaLinha(rotulo: 'Taxa de entrega', valor: moeda(opcao.valorFrete)),
-              if (opcao.valorAdicionais > 0)
-                _FichaLinha(
-                    rotulo: 'Servicos adicionais',
-                    valor: moeda(opcao.valorAdicionais)),
-              if (opcao.desconto > 0)
-                _FichaLinha(rotulo: 'Desconto', valor: '- ${moeda(opcao.desconto)}'),
-              const Divider(height: 24),
-              Row(
-                children: [
-                  const Expanded(
-                    child: Text('Total',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Motoristas parceiros e transportadoras da sua regiao, '
+                    'a partir de ${moeda(cotacao.ofertas.map((o) => o.total).reduce((a, b) => a < b ? a : b))}',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 12, color: Cores.textoFraco),
                   ),
-                  Text(moeda(opcao.total),
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.w800)),
-                ],
-              ),
-              const SizedBox(height: 16),
-              for (final aviso in avisos)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
-                  child: Text('- $aviso',
-                      style: const TextStyle(fontSize: 12, color: Cores.textoFraco)),
-                ),
-              const SizedBox(height: 12),
-              FilledButton(
-                onPressed: () => Navigator.of(contexto).pop(),
-                child: const Text('Fechar'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OpcaoPreco extends StatelessWidget {
-  const _OpcaoPreco({
-    required this.opcao,
-    required this.selecionada,
-    required this.onTap,
-    required this.onDetalhe,
-  });
-
-  final OpcaoCotacao opcao;
-  final bool selecionada;
-  final VoidCallback onTap;
-  final VoidCallback onDetalhe;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: selecionada ? Cores.primaria.withOpacity(0.05) : null,
-            border: Border.all(
-              color: selecionada ? Cores.primaria : Cores.borda,
-              width: selecionada ? 1.6 : 1,
-            ),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Text(opcao.nome,
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700)),
-                        if (opcao.recomendado) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 7, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: Cores.destaque,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Text('recomendado',
-                                style: TextStyle(
-                                    fontSize: 10,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w700)),
-                          ),
-                        ],
-                        const SizedBox(width: 4),
-                        IconButton(
-                          iconSize: 15,
-                          visualDensity: VisualDensity.compact,
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                          icon: const Icon(Icons.info_outline, color: Cores.textoFraco),
-                          onPressed: onDetalhe,
-                        ),
-                      ],
+                ] else ...[
+                  CartaoOferta(
+                    oferta: oferta,
+                    selecionada: true,
+                    rotuloAcao: 'Trocar',
+                    onTap: () => _escolher(context),
+                    onDetalhe: () =>
+                        mostrarDetalhePreco(context, oferta, cotacao.avisos),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TelaRevisao()),
                     ),
-                    Text(opcao.descricao,
-                        style: const TextStyle(fontSize: 12, color: Cores.textoFraco)),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(moeda(opcao.total),
-                      style: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.w800)),
-                  if (opcao.desconto > 0)
-                    Text(moeda(opcao.valorFrete + opcao.valorAdicionais),
-                        style: const TextStyle(
-                          fontSize: 11.5,
-                          color: Cores.textoFraco,
-                          decoration: TextDecoration.lineThrough,
-                        )),
+                    child: const Text('Proximo passo'),
+                  ),
                 ],
-              ),
+              ],
             ],
           ),
         ),

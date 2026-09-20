@@ -232,50 +232,76 @@ class CategoriaVeiculo {
       );
 }
 
-class OpcaoCotacao {
-  final String nivel;
+/// Oferta de um parceiro (motorista autonomo ou transportadora) para o frete.
+class OfertaParceiro {
+  final String chave;
+  final String tipo; // 'motorista' | 'transportadora'
+  final int parceiroId;
   final String nome;
-  final String descricao;
+  final double nota; // 0 = sem avaliacoes
+  final int totalFretes;
+  final bool favorito;
+  final String veiculo;
+  final double distanciaColetaKm;
+  final int chegadaColetaMin;
+  final int prazoEntregaMin;
   final double valorFrete;
   final double valorAdicionais;
   final double desconto;
   final double total;
-  final bool recomendado;
 
-  const OpcaoCotacao({
-    required this.nivel,
+  const OfertaParceiro({
+    required this.chave,
+    required this.tipo,
+    required this.parceiroId,
     required this.nome,
-    required this.descricao,
+    required this.nota,
+    required this.totalFretes,
+    this.favorito = false,
+    required this.veiculo,
+    required this.distanciaColetaKm,
+    required this.chegadaColetaMin,
+    required this.prazoEntregaMin,
     required this.valorFrete,
     required this.valorAdicionais,
     required this.desconto,
     required this.total,
-    this.recomendado = false,
   });
 
-  factory OpcaoCotacao.doJson(Map<String, dynamic> j) => OpcaoCotacao(
-        nivel: j['nivel'] as String,
+  bool get ehMotorista => tipo == 'motorista';
+
+  String get rotuloTipo => ehMotorista ? 'Motorista parceiro' : 'Transportadora';
+
+  factory OfertaParceiro.doJson(Map<String, dynamic> j) => OfertaParceiro(
+        chave: j['chave'] as String,
+        tipo: j['parceiroTipo'] as String,
+        parceiroId: (j['parceiroId'] as num).toInt(),
         nome: j['nome'] as String,
-        descricao: j['descricao'] as String,
+        nota: (j['nota'] as num).toDouble(),
+        totalFretes: (j['totalFretes'] as num).toInt(),
+        favorito: j['favorito'] == true,
+        veiculo: j['veiculo'] as String,
+        distanciaColetaKm: (j['distanciaColetaKm'] as num).toDouble(),
+        chegadaColetaMin: (j['chegadaColetaMin'] as num).toInt(),
+        prazoEntregaMin: (j['prazoEntregaMin'] as num).toInt(),
         valorFrete: (j['valorFrete'] as num).toDouble(),
         valorAdicionais: (j['valorAdicionais'] as num).toDouble(),
         desconto: (j['desconto'] as num).toDouble(),
         total: (j['total'] as num).toDouble(),
-        recomendado: j['recomendado'] == true,
       );
 }
 
 class Cotacao {
   final double distanciaKm;
   final int paradas;
-  final List<OpcaoCotacao> opcoes;
+  final List<OfertaParceiro> ofertas;
   final List<String> avisos;
   final String? cupomAplicado;
 
   const Cotacao({
     required this.distanciaKm,
     required this.paradas,
-    required this.opcoes,
+    required this.ofertas,
     this.avisos = const [],
     this.cupomAplicado,
   });
@@ -283,8 +309,8 @@ class Cotacao {
   factory Cotacao.doJson(Map<String, dynamic> j) => Cotacao(
         distanciaKm: (j['distanciaKm'] as num).toDouble(),
         paradas: (j['paradas'] as num).toInt(),
-        opcoes: (j['opcoes'] as List)
-            .map((e) => OpcaoCotacao.doJson(e as Map<String, dynamic>))
+        ofertas: (j['ofertas'] as List)
+            .map((e) => OfertaParceiro.doJson(e as Map<String, dynamic>))
             .toList(),
         avisos: ((j['avisos'] as List?) ?? const []).map((e) => e as String).toList(),
         cupomAplicado: j['cupom'] == null ? null : j['cupom']['codigo'] as String?,
@@ -404,9 +430,10 @@ class Pedido {
   final double valorTotal;
   final String? formaPagamento;
   final String pagador;
-  final bool favoritosPrimeiro;
   final String? motoristaNome;
   final double? motoristaAvaliacao;
+  final String? transportadoraNome;
+  final double? transportadoraAvaliacao;
   final String? veiculoPlaca;
   final String? observacaoMotorista;
   final DateTime criadoEm;
@@ -430,9 +457,10 @@ class Pedido {
     required this.valorTotal,
     this.formaPagamento,
     this.pagador = 'remetente',
-    this.favoritosPrimeiro = false,
     this.motoristaNome,
     this.motoristaAvaliacao,
+    this.transportadoraNome,
+    this.transportadoraAvaliacao,
     this.veiculoPlaca,
     this.observacaoMotorista,
     required this.criadoEm,
@@ -459,6 +487,65 @@ class Pedido {
 
   bool get emAndamento => !['concluido', 'cancelado'].contains(situacao);
 
+  /// Parceiro do pedido: o motorista autonomo ou a transportadora escolhida.
+  String? get parceiroNome => motoristaNome ?? transportadoraNome;
+
+  double? get parceiroAvaliacao => motoristaAvaliacao ?? transportadoraAvaliacao;
+
+  bool get ehTransportadora => motoristaNome == null && transportadoraNome != null;
+
+  bool get aguardandoAceite => situacao == 'aguardando_alocacao';
+
+  /// Depois da recusa do parceiro, o cliente precisa escolher outro.
+  bool get aguardandoEscolha => situacao == 'cotado';
+
+  Pedido copiarCom({
+    String? situacao,
+    double? valorFrete,
+    double? valorAdicionais,
+    double? valorDesconto,
+    double? valorTotal,
+    String? motoristaNome,
+    double? motoristaAvaliacao,
+    String? transportadoraNome,
+    double? transportadoraAvaliacao,
+    String? veiculoPlaca,
+    bool limparParceiro = false,
+    List<Parada>? paradas,
+    List<EventoPedido>? eventos,
+  }) =>
+      Pedido(
+        id: id,
+        codigo: codigo,
+        situacao: situacao ?? this.situacao,
+        nivelServico: nivelServico,
+        tipoRetirada: tipoRetirada,
+        agendadoPara: agendadoPara,
+        categoriaNome: categoriaNome,
+        distanciaKm: distanciaKm,
+        valorFrete: valorFrete ?? this.valorFrete,
+        valorAdicionais: valorAdicionais ?? this.valorAdicionais,
+        valorDesconto: valorDesconto ?? this.valorDesconto,
+        valorTotal: valorTotal ?? this.valorTotal,
+        formaPagamento: formaPagamento,
+        pagador: pagador,
+        motoristaNome: limparParceiro ? null : (motoristaNome ?? this.motoristaNome),
+        motoristaAvaliacao:
+            limparParceiro ? null : (motoristaAvaliacao ?? this.motoristaAvaliacao),
+        transportadoraNome:
+            limparParceiro ? null : (transportadoraNome ?? this.transportadoraNome),
+        transportadoraAvaliacao: limparParceiro
+            ? null
+            : (transportadoraAvaliacao ?? this.transportadoraAvaliacao),
+        veiculoPlaca: limparParceiro ? null : (veiculoPlaca ?? this.veiculoPlaca),
+        observacaoMotorista: observacaoMotorista,
+        criadoEm: criadoEm,
+        paradas: paradas ?? this.paradas,
+        carga: carga,
+        servicos: servicos,
+        eventos: eventos ?? this.eventos,
+      );
+
   factory Pedido.doJson(Map<String, dynamic> j) => Pedido(
         id: j['id'] as int,
         codigo: j['codigo'] as String,
@@ -476,9 +563,10 @@ class Pedido {
         valorTotal: (j['valor_total'] as num?)?.toDouble() ?? 0,
         formaPagamento: j['forma_pagamento'] as String?,
         pagador: (j['pagador'] ?? 'remetente') as String,
-        favoritosPrimeiro: (j['favoritos_primeiro'] ?? 0) == 1,
         motoristaNome: j['motorista_nome'] as String?,
         motoristaAvaliacao: (j['motorista_avaliacao'] as num?)?.toDouble(),
+        transportadoraNome: j['transportadora_nome'] as String?,
+        transportadoraAvaliacao: (j['transportadora_avaliacao'] as num?)?.toDouble(),
         veiculoPlaca: j['veiculo_placa'] as String?,
         observacaoMotorista: j['observacao_motorista'] as String?,
         criadoEm: DateTime.tryParse(

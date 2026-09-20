@@ -158,7 +158,8 @@ class RepositorioApi implements Repositorio {
     final j = await _post('/pedidos', {
       'cidade': Config.cidadePadrao,
       'categoriaId': corpo['categoriaId'],
-      'nivelServico': corpo['nivelServico'],
+      'parceiroTipo': corpo['parceiroTipo'],
+      'parceiroId': corpo['parceiroId'],
       'tipoRetirada': corpo['tipoRetirada'],
       'agendadoPara': agendado?.toIso8601String(),
       'modalidade': corpo['modalidade'],
@@ -171,7 +172,6 @@ class RepositorioApi implements Repositorio {
       'carga': (carga ?? const Carga()).paraJson(),
       'formaPagamento': corpo['formaPagamento'],
       'pagador': corpo['pagador'],
-      'favoritosPrimeiro': corpo['favoritosPrimeiro'],
       'exigeComprovante': corpo['exigeComprovante'],
       'observacaoMotorista': corpo['observacaoMotorista'],
       'contatoTelefone': corpo['contatoTelefone'],
@@ -197,6 +197,21 @@ class RepositorioApi implements Repositorio {
   @override
   Future<Pedido> avancarPedido(int id) async =>
       Pedido.doJson(await _post('/pedidos/$id/avancar') as Map<String, dynamic>);
+
+  @override
+  Future<Cotacao> cotarPedido(int id) async =>
+      Cotacao.doJson(await _get('/pedidos/$id/cotacao') as Map<String, dynamic>);
+
+  @override
+  Future<Pedido> recusarParceiro(int id) async =>
+      Pedido.doJson(await _post('/pedidos/$id/recusar-parceiro') as Map<String, dynamic>);
+
+  @override
+  Future<Pedido> trocarParceiro(int id, OfertaParceiro oferta) async => Pedido.doJson(
+      await _post('/pedidos/$id/parceiro', {
+        'parceiroTipo': oferta.tipo,
+        'parceiroId': oferta.parceiroId,
+      }) as Map<String, dynamic>);
 
   @override
   Future<double> cancelarPedido(int id, String motivo) async {

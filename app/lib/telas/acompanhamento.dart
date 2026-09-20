@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -6,6 +8,7 @@ import '../core/tema.dart';
 import '../core/widgets/comuns.dart';
 import '../estado/sessao.dart';
 import '../modelos/modelos.dart';
+import 'cotacoes.dart';
 
 /// Acompanhamento do pedido: mapa, etapas, parceiro e acoes.
 class TelaAcompanhamento extends StatefulWidget {
@@ -31,10 +34,40 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
     'concluido',
   ];
 
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
     _carregar();
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  /// Enquanto o parceiro nao aceita, consulta o pedido de tempos em tempos.
+  void _ajustarAtualizacao() {
+    if (_pedido?.aguardandoAceite == true) {
+      _timer ??= Timer.periodic(const Duration(seconds: 3), (_) => _atualizarSilencioso());
+    } else {
+      _timer?.cancel();
+      _timer = null;
+    }
+  }
+
+  Future<void> _atualizarSilencioso() async {
+    final repo = context.read<Sessao>().repo;
+    try {
+      final p = await repo.obterPedido(widget.pedidoId);
+      if (!mounted) return;
+      setState(() => _pedido = p);
+      _ajustarAtualizacao();
+    } catch (_) {
+      // tenta de novo no proximo ciclo
+    }
   }
 
   Future<void> _carregar() async {
@@ -45,6 +78,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       _pedido = p;
       _ocupado = false;
     });
+    _ajustarAtualizacao();
   }
 
   Future<void> _avancar() async {
@@ -56,6 +90,39 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       _pedido = p;
       _ocupado = false;
     });
+    _ajustarAtualizacao();
+  }
+
+  Future<void> _simularRecusa() async {
+    setState(() => _ocupado = true);
+    final repo = context.read<Sessao>().repo;
+    try {
+      final p = await repo.recusarParceiro(widget.pedidoId);
+      if (!mounted) return;
+      setState(() {
+        _pedido = p;
+        _ocupado = false;
+      });
+      _ajustarAtualizacao();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('O parceiro recusou o pedido. Escolha outra opcao.'),
+      ));
+      await _escolherOutro();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _ocupado = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
+  }
+
+  /// Volta para a lista de cotacoes para escolher outro parceiro.
+  Future<void> _escolherOutro() async {
+    final novo = await Navigator.of(context).push<Pedido>(
+      MaterialPageRoute(builder: (_) => TelaCotacoes(pedidoId: widget.pedidoId)),
+    );
+    if (novo == null || !mounted) return;
+    setState(() => _pedido = novo);
+    _ajustarAtualizacao();
   }
 
   Future<void> _cancelar() async {
@@ -131,17 +198,18 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                 decoration: const InputDecoration(labelText: 'Comentario (opcional)'),
               ),
               const SizedBox(height: 8),
-              CheckboxListTile(
-                value: favoritar,
-                onChanged: (v) => refazer(() => favoritar = v ?? false),
-                contentPadding: EdgeInsets.zero,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text('Adicionar ${_pedido?.motoristaNome ?? 'o motorista'} aos meus favoritos'),
-                subtitle: const Text(
-                  'Ele passa a receber suas ofertas antes da base geral',
-                  style: TextStyle(fontSize: 12),
+              if (_pedido?.motoristaNome != null)
+                CheckboxListTile(
+                  value: favoritar,
+                  onChanged: (v) => refazer(() => favoritar = v ?? false),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text('Adicionar ${_pedido!.motoristaNome} aos meus favoritos'),
+                  subtitle: const Text(
+                    'Ele aparece com destaque nas suas proximas cotacoes',
+                    style: TextStyle(fontSize: 12),
+                  ),
                 ),
-              ),
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: () => Navigator.of(contexto).pop(true),
@@ -162,6 +230,11 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       );
     }
     comentario.dispose();
+  }
+
+  String _nota(Pedido p) {
+    final nota = p.parceiroAvaliacao ?? 0;
+    return nota > 0 ? nota.toStringAsFixed(2) : 'Sem avaliacoes';
   }
 
   double? get _progresso {
@@ -222,48 +295,76 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                             : 'Pedido criado em ${dataHora(p.criadoEm)}',
                         style: const TextStyle(fontSize: 12.5, color: Cores.textoFraco),
                       ),
-                      if (p.favoritosPrimeiro) ...[
-                        const SizedBox(height: 8),
+                      if (p.aguardandoAceite && p.parceiroNome != null) ...[
+                        const SizedBox(height: 10),
                         Row(
-                          children: const [
-                            Icon(Icons.star, size: 15, color: Cores.destaque),
-                            SizedBox(width: 6),
-                            Text('Ofertado primeiro aos seus favoritos',
-                                style: TextStyle(fontSize: 12.5)),
+                          children: [
+                            const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Aguardando ${p.parceiroNome} aceitar o pedido...',
+                                style: const TextStyle(fontSize: 12.5),
+                              ),
+                            ),
                           ],
+                        ),
+                      ],
+                      if (p.aguardandoEscolha) ...[
+                        const SizedBox(height: 10),
+                        const Text(
+                          'O parceiro anterior recusou o pedido. Escolha outro para continuar.',
+                          style: TextStyle(fontSize: 12.5, color: Cores.alerta),
+                        ),
+                        const SizedBox(height: 8),
+                        FilledButton.icon(
+                          onPressed: _ocupado ? null : _escolherOutro,
+                          icon: const Icon(Icons.groups_2_outlined),
+                          label: const Text('Escolher outro parceiro'),
                         ),
                       ],
                     ],
                   ),
                 ),
-                if (p.motoristaNome != null) ...[
+                if (p.parceiroNome != null) ...[
                   const SizedBox(height: 12),
                   Bloco(
                     child: Row(
                       children: [
-                        const CircleAvatar(
+                        CircleAvatar(
                           radius: 24,
                           backgroundColor: Cores.fundo,
-                          child: Icon(Icons.person, color: Cores.primaria),
+                          child: Icon(
+                              p.ehTransportadora
+                                  ? Icons.local_shipping_outlined
+                                  : Icons.person,
+                              color: Cores.primaria),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(p.motoristaNome!,
+                              Text(p.parceiroNome!,
                                   style: const TextStyle(
                                       fontWeight: FontWeight.w700, fontSize: 15)),
                               Row(
                                 children: [
                                   const Icon(Icons.star, size: 14, color: Cores.destaque),
                                   const SizedBox(width: 3),
-                                  Text(
-                                    '${(p.motoristaAvaliacao ?? 0).toStringAsFixed(2)}'
-                                    '${p.veiculoPlaca == null ? '' : ' - ${p.veiculoPlaca}'}'
-                                    ' - ${p.categoriaNome}',
-                                    style: const TextStyle(
-                                        fontSize: 12.5, color: Cores.textoFraco),
+                                  Flexible(
+                                    child: Text(
+                                      '${_nota(p)}'
+                                      '${p.veiculoPlaca == null ? '' : ' - ${p.veiculoPlaca}'}'
+                                      ' - ${p.categoriaNome}'
+                                      '${p.ehTransportadora ? ' - transportadora' : ''}',
+                                      style: const TextStyle(
+                                          fontSize: 12.5, color: Cores.textoFraco),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -442,12 +543,24 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                     label: const Text('Avaliar o parceiro'),
                   )
                 else if (p.situacao != 'cancelado') ...[
-                  FilledButton.icon(
-                    onPressed: _ocupado ? null : _avancar,
-                    icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Simular proxima etapa'),
-                  ),
-                  const SizedBox(height: 10),
+                  if (!p.aguardandoEscolha) ...[
+                    FilledButton.icon(
+                      onPressed: _ocupado ? null : _avancar,
+                      icon: const Icon(Icons.play_arrow_rounded),
+                      label: Text(p.aguardandoAceite
+                          ? 'Simular aceite do parceiro'
+                          : 'Simular proxima etapa'),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
+                  if (p.aguardandoAceite) ...[
+                    OutlinedButton.icon(
+                      onPressed: _ocupado ? null : _simularRecusa,
+                      icon: const Icon(Icons.thumb_down_alt_outlined),
+                      label: const Text('Simular recusa do parceiro'),
+                    ),
+                    const SizedBox(height: 10),
+                  ],
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Cores.alerta,
@@ -459,8 +572,8 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'O botao de simular etapa existe apenas no prototipo, para demonstrar '
-                    'a maquina de estados sem depender do app do motorista.',
+                    'Os botoes de simular existem apenas no prototipo, para demonstrar '
+                    'a maquina de estados sem depender do app do parceiro.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Cores.textoFraco),
                   ),
