@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/formato.dart';
 import '../core/tema.dart';
 import '../core/widgets/comuns.dart';
+import '../core/widgets/progresso_pedido.dart';
 import '../estado/novo_pedido.dart';
 import 'acompanhamento.dart';
 
@@ -38,7 +39,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               ListTile(
                 leading: const Icon(Icons.account_balance_wallet_outlined),
                 title: const Text('Carteira Solus'),
-                subtitle: const Text('Debita do saldo disponivel'),
+                subtitle: const Text('Debita do saldo disponível'),
                 trailing: rascunho.formaPagamento == 'carteira'
                     ? const Icon(Icons.check_circle, color: Cores.primaria)
                     : null,
@@ -61,7 +62,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               ),
               ListTile(
                 leading: const Icon(Icons.credit_card),
-                title: const Text('Cartao de credito'),
+                title: const Text('Cartão de crédito'),
                 subtitle: const Text('Cadastre no app do cliente'),
                 trailing: rascunho.formaPagamento == 'cartao'
                     ? const Icon(Icons.check_circle, color: Cores.primaria)
@@ -97,7 +98,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                   groupValue: rascunho.pagador,
                   onChanged: (v) => refazer(() =>
                       rascunho.definirPagamento('dinheiro', quemPaga: v ?? 'destinatario')),
-                  title: const Text('Destinatario paga na entrega (frete a pagar)'),
+                  title: const Text('Destinatário paga na entrega (frete a pagar)'),
                   subtitle: Text(
                       rascunho.entregas.isEmpty
                           ? ''
@@ -126,7 +127,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
 
     if (!_aceiteItens) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Confirme a declaracao de itens proibidos'),
+        content: Text('Confirme a declaração de itens proibidos'),
       ));
       return;
     }
@@ -143,13 +144,15 @@ class _TelaRevisaoState extends State<TelaRevisao> {
       if (!mounted) return;
       if (pedido == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nao foi possivel criar o pedido')),
+          const SnackBar(content: Text('Não foi possível criar o pedido')),
         );
         return;
       }
       rascunho.limpar();
-      Navigator.of(context).pushReplacement(
+      // Remove as etapas do pedido: ao voltar do acompanhamento, cai na home.
+      Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => TelaAcompanhamento(pedidoId: pedido.id)),
+        (rota) => rota.isFirst,
       );
     } catch (e) {
       if (mounted) {
@@ -167,7 +170,10 @@ class _TelaRevisaoState extends State<TelaRevisao> {
     final opcao = rascunho.opcaoSelecionada;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Revisar e confirmar')),
+      appBar: AppBar(
+        title: const Text('Revisar e confirmar'),
+        bottom: const ProgressoPedido(etapa: 4),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -223,17 +229,17 @@ class _TelaRevisaoState extends State<TelaRevisao> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const TituloSecao('Veiculo e carga'),
+                const TituloSecao('Veículo e carga'),
                 _Linha(
-                    rotulo: 'Veiculo',
+                    rotulo: 'Veículo',
                     valor: rascunho.categoria?.nome ?? '-'),
                 _Linha(
-                    rotulo: 'Nivel de servico',
+                    rotulo: 'Nível de serviço',
                     valor: opcao?.nome ?? rascunho.nivelSelecionado),
                 if (rascunho.horasContratadas != null)
                   _Linha(
-                      rotulo: 'Contratacao',
-                      valor: '${rascunho.horasContratadas}h por periodo'),
+                      rotulo: 'Contratação',
+                      valor: '${rascunho.horasContratadas}h por período'),
                 _Linha(
                     rotulo: 'Carga',
                     valor:
@@ -243,7 +249,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                     valor: rotuloFaixaPeso(rascunho.carga.faixaPeso)),
                 if (rascunho.servicosSelecionados.isNotEmpty)
                   _Linha(
-                    rotulo: 'Servicos',
+                    rotulo: 'Serviços',
                     valor: rascunho.categoria!.servicos
                         .where((s) => rascunho.servicosSelecionados.contains(s.id))
                         .map((s) => s.nome)
@@ -251,10 +257,10 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                   ),
                 _Linha(
                     rotulo: 'Comprovante',
-                    valor: rascunho.exigeComprovante ? 'Exigido' : 'Nao exigido'),
+                    valor: rascunho.exigeComprovante ? 'Exigido' : 'Não exigido'),
                 _Linha(
                     rotulo: 'Favoritos primeiro',
-                    valor: rascunho.favoritosPrimeiro ? 'Sim' : 'Nao'),
+                    valor: rascunho.favoritosPrimeiro ? 'Sim' : 'Não'),
               ],
             ),
           ),
@@ -269,9 +275,9 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               subtitle: Text(
                 rascunho.formaPagamento == 'dinheiro'
                     ? (rascunho.pagador == 'destinatario'
-                        ? 'Frete a pagar: destinatario paga na entrega'
+                        ? 'Frete a pagar: destinatário paga na entrega'
                         : 'Remetente paga na coleta')
-                    : 'Obrigatorio para confirmar o pedido',
+                    : 'Obrigatório para confirmar o pedido',
                 style: TextStyle(
                   fontSize: 12.5,
                   color: rascunho.formaPagamento == null ? Cores.alerta : null,
@@ -289,7 +295,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               title: const Text(
-                'Declaro que a carga nao contem itens proibidos pela politica do Solus Frete.',
+                'Declaro que a carga não contém itens proibidos pela política do Solus Frete.',
                 style: TextStyle(fontSize: 13),
               ),
             ),
@@ -302,7 +308,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                   _Linha(rotulo: 'Taxa de entrega', valor: moeda(opcao.valorFrete)),
                   if (opcao.valorAdicionais > 0)
                     _Linha(
-                        rotulo: 'Servicos adicionais',
+                        rotulo: 'Serviços adicionais',
                         valor: moeda(opcao.valorAdicionais)),
                   if (opcao.desconto > 0)
                     _Linha(rotulo: 'Desconto', valor: '- ${moeda(opcao.desconto)}'),
@@ -323,7 +329,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Pedagio e estacionamento nao estao inclusos e sao acertados direto com o parceiro.',
+                      'Pedágio e estacionamento não estão inclusos e são acertados direto com o parceiro.',
                       style: TextStyle(fontSize: 11.5, color: Cores.textoFraco),
                     ),
                   ),

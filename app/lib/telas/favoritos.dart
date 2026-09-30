@@ -50,8 +50,8 @@ class _TelaFavoritosState extends State<TelaFavoritos> {
           children: [
             const TituloSecao('Convidar um motorista'),
             const Text(
-              'Se voce ja trabalha com um motorista de confianca, informe o telefone. '
-              'Enviamos um convite por SMS e, apos a homologacao, ele entra nos seus favoritos.',
+              'Se você já trabalha com um motorista de confiança, informe o telefone. '
+              'Enviamos um convite por SMS e, após a homologação, ele entra nos seus favoritos.',
               style: TextStyle(fontSize: 12.5, color: Cores.textoFraco, height: 1.4),
             ),
             const SizedBox(height: 16),
@@ -110,7 +110,7 @@ class _TelaFavoritosState extends State<TelaFavoritos> {
             icone: Icons.people_outline,
             titulo: 'Nenhum motorista favorito',
             descricao:
-                'Favorite um parceiro ao avaliar um pedido ou convide alguem que voce ja conhece.',
+                'Favorite um parceiro ao avaliar um pedido ou convide alguém que você já conhece.',
             acao: FilledButton.icon(
               onPressed: _convidar,
               icon: const Icon(Icons.person_add_alt),
@@ -197,7 +197,7 @@ class _TelaFavoritosState extends State<TelaFavoritos> {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Text(
-                                m.disponivel ? 'disponivel' : 'offline',
+                                m.disponivel ? 'disponível' : 'offline',
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,

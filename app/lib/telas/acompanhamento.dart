@@ -64,9 +64,9 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       builder: (contexto) => AlertDialog(
         title: const Text('Cancelar pedido'),
         content: const Text(
-          'Antes da alocacao o cancelamento e gratuito. '
+          'Antes da alocação o cancelamento é gratuito. '
           'Depois que um parceiro aceita, aplica-se taxa de 15%. '
-          'Apos a coleta o pedido nao pode ser cancelado.',
+          'Após a coleta o pedido não pode ser cancelado.',
         ),
         actions: [
           TextButton(
@@ -128,7 +128,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
               TextField(
                 controller: comentario,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Comentario (opcional)'),
+                decoration: const InputDecoration(labelText: 'Comentário (opcional)'),
               ),
               const SizedBox(height: 8),
               CheckboxListTile(
@@ -145,7 +145,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: () => Navigator.of(contexto).pop(true),
-                child: const Text('Enviar avaliacao'),
+                child: const Text('Enviar avaliação'),
               ),
             ],
           ),
@@ -158,7 +158,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       await repo.avaliarPedido(widget.pedidoId, nota, comentario.text.trim(), favoritar);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Obrigado pela avaliacao!')),
+        const SnackBar(content: Text('Obrigado pela avaliação!')),
       );
     }
     comentario.dispose();
@@ -277,7 +277,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                           onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'No app final o contato e mediado, sem expor os numeros.'),
+                                  'No app final o contato é mediado, sem expor os números.'),
                             ),
                           ),
                         ),
@@ -385,11 +385,11 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                               children: [
                                 if (p.carga!.fragil)
                                   const Chip(
-                                      label: Text('Fragil'),
+                                      label: Text('Frágil'),
                                       visualDensity: VisualDensity.compact),
                                 if (p.carga!.naoEmpilhar)
                                   const Chip(
-                                      label: Text('Nao empilhar'),
+                                      label: Text('Não empilhar'),
                                       visualDensity: VisualDensity.compact),
                               ],
                             ),
@@ -445,7 +445,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                   FilledButton.icon(
                     onPressed: _ocupado ? null : _avancar,
                     icon: const Icon(Icons.play_arrow_rounded),
-                    label: const Text('Simular proxima etapa'),
+                    label: const Text('Simular próxima etapa'),
                   ),
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
@@ -459,8 +459,8 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'O botao de simular etapa existe apenas no prototipo, para demonstrar '
-                    'a maquina de estados sem depender do app do motorista.',
+                    'O botão de simular etapa existe apenas no protótipo, para demonstrar '
+                    'a máquina de estados sem depender do app do motorista.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Cores.textoFraco),
                   ),

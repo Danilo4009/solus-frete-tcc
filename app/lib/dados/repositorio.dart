@@ -34,6 +34,15 @@ abstract class Repositorio {
     String? cupom,
   });
 
+  /// Ate [limite] motoristas disponiveis da categoria, do mais perto ao mais
+  /// longe do ponto informado.
+  Future<List<MotoristaProximo>> motoristasProximos({
+    required int categoriaId,
+    required double latitude,
+    required double longitude,
+    int limite = 10,
+  });
+
   Future<Pedido> criarPedido(Map<String, dynamic> corpo);
 
   Future<List<Pedido>> listarPedidos({String situacao, String? busca});

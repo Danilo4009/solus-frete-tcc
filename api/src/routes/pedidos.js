@@ -76,7 +76,7 @@ router.get('/', async (req, res) => {
 // GET /pedidos/:id
 router.get('/:id', async (req, res) => {
   const pedido = await carregarPedido(req.params.id);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
   if (pedido.cliente_id !== req.usuario.id && req.usuario.tipo === 'cliente_pf') {
     return res.status(403).json({ erro: 'Sem acesso a este pedido' });
   }
@@ -97,10 +97,10 @@ router.post('/', async (req, res) => {
   } = req.body || {};
 
   // --- validacoes (regras RN01, RN02, RN04, RN10) ---
-  if (!categoriaId) return res.status(400).json({ erro: 'Selecione o veiculo' });
+  if (!categoriaId) return res.status(400).json({ erro: 'Selecione o veículo' });
   if (paradas.length < 2) return res.status(400).json({ erro: 'Informe coleta e entrega' });
   if (!formaPagamento) return res.status(400).json({ erro: 'Selecione a forma de pagamento' });
-  if (!aceiteItensProibidos) return res.status(400).json({ erro: 'E necessario aceitar a politica de itens proibidos' });
+  if (!aceiteItensProibidos) return res.status(400).json({ erro: 'É necessário aceitar a política de itens proibidos' });
   if (tipoRetirada === 'agendada' && !agendadoPara) {
     return res.status(400).json({ erro: 'Informe a data e hora do agendamento' });
   }
@@ -109,13 +109,13 @@ router.post('/', async (req, res) => {
   }
 
   const categoria = await one('SELECT * FROM categoria_veiculo WHERE id = ?', [categoriaId]);
-  if (!categoria) return res.status(404).json({ erro: 'Categoria nao encontrada' });
+  if (!categoria) return res.status(404).json({ erro: 'Categoria não encontrada' });
 
   const PESO_FAIXA = { ate_50: 50, ate_300: 300, de_300_a_750: 750, acima_750: 3500 };
   const pesoEstimado = PESO_FAIXA[carga.faixaPeso] || 0;
   if (pesoEstimado > categoria.peso_max_kg) {
     return res.status(422).json({
-      erro: 'Peso declarado acima da capacidade do veiculo',
+      erro: 'Peso declarado acima da capacidade do veículo',
       capacidadeKg: categoria.peso_max_kg,
       sugestao: 'Selecione uma categoria maior',
     });
@@ -126,7 +126,7 @@ router.post('/', async (req, res) => {
       ORDER BY vigente_desde DESC LIMIT 1`,
     [cidade, categoriaId, nivelServico]
   );
-  if (!preco) return res.status(404).json({ erro: 'Sem tabela de preco para esta combinacao' });
+  if (!preco) return res.status(404).json({ erro: 'Sem tabela de preço para esta combinação' });
 
   const km = distanciaRota(paradas);
   const valorFrete = calcularFrete({
@@ -265,15 +265,25 @@ router.post('/', async (req, res) => {
 
 // POST /pedidos/:id/avancar  -> simula a evolucao do pedido no prototipo
 const FLUXO = ['aguardando_alocacao', 'alocado', 'em_deslocamento_coleta', 'carregando', 'em_transito', 'entregue', 'concluido'];
+// Mesmos rotulos que o app mostra (app/lib/core/formato.dart, rotuloSituacao)
+const ROTULOS_ETAPA = {
+  aguardando_alocacao: 'Buscando parceiro',
+  alocado: 'Parceiro confirmado',
+  em_deslocamento_coleta: 'A caminho da coleta',
+  carregando: 'Carregando',
+  em_transito: 'Em trânsito',
+  entregue: 'Entregue',
+  concluido: 'Concluído',
+};
 router.post('/:id/avancar', async (req, res) => {
   const pedido = await one('SELECT * FROM pedido WHERE id = ?', [req.params.id]);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
   if (pedido.situacao === 'cancelado' || pedido.situacao === 'concluido') {
     return res.status(409).json({ erro: 'Pedido finalizado' });
   }
   const atual = FLUXO.indexOf(pedido.situacao);
   const proxima = FLUXO[atual + 1];
-  if (!proxima) return res.status(409).json({ erro: 'Nao ha proxima etapa' });
+  if (!proxima) return res.status(409).json({ erro: 'Não há próxima etapa' });
 
   await transacao(async (conn) => {
     if (proxima === 'alocado') {
@@ -305,11 +315,11 @@ router.post('/:id/avancar', async (req, res) => {
     const extra = proxima === 'concluido' ? ', concluido_em = NOW()' : '';
     await conn.execute(`UPDATE pedido SET situacao = ?${extra} WHERE id = ?`, [proxima, pedido.id]);
     await conn.execute('INSERT INTO pedido_evento (pedido_id, situacao, descricao) VALUES (?,?,?)',
-      [pedido.id, proxima, 'Atualizacao de etapa']);
+      [pedido.id, proxima, 'Atualização de etapa']);
     await conn.execute(
       `INSERT INTO notificacao (usuario_id, categoria, titulo, mensagem, pedido_id)
        VALUES (?, 'operacional', ?, ?, ?)`,
-      [pedido.cliente_id, `Pedido ${pedido.codigo}`, `Nova etapa: ${proxima.replace(/_/g, ' ')}`, pedido.id]);
+      [pedido.cliente_id, `Pedido ${pedido.codigo}`, `Nova etapa: ${ROTULOS_ETAPA[proxima] || proxima}`, pedido.id]);
   });
 
   res.json(await carregarPedido(pedido.id));
@@ -318,9 +328,9 @@ router.post('/:id/avancar', async (req, res) => {
 // POST /pedidos/:id/cancelar  (RN06)
 router.post('/:id/cancelar', async (req, res) => {
   const pedido = await one('SELECT * FROM pedido WHERE id = ?', [req.params.id]);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
   if (['em_transito', 'entregue', 'concluido'].includes(pedido.situacao)) {
-    return res.status(409).json({ erro: 'Pedido ja coletado nao pode ser cancelado. Registre uma ocorrencia.' });
+    return res.status(409).json({ erro: 'Pedido já coletado não pode ser cancelado. Registre uma ocorrência.' });
   }
   const taxa = ['alocado', 'em_deslocamento_coleta', 'carregando'].includes(pedido.situacao)
     ? Math.round(Number(pedido.valor_total) * 0.15 * 100) / 100
@@ -347,8 +357,8 @@ router.post('/:id/avaliar', async (req, res) => {
   const pedido = await one(
     `SELECT p.*, m.usuario_id AS motorista_usuario_id FROM pedido p
        LEFT JOIN motorista m ON m.id = p.motorista_id WHERE p.id = ?`, [req.params.id]);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
-  if (pedido.situacao !== 'concluido') return res.status(409).json({ erro: 'Avalie apenas pedidos concluidos' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
+  if (pedido.situacao !== 'concluido') return res.status(409).json({ erro: 'Avalie apenas pedidos concluídos' });
 
   await transacao(async (conn) => {
     await conn.execute(

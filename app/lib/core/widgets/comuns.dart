@@ -171,7 +171,7 @@ class MapaSimulado extends StatelessWidget {
                   color: Colors.white.withOpacity(0.9),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text('mapa esquematico',
+                child: const Text('mapa esquemático',
                     style: TextStyle(fontSize: 10, color: Cores.textoFraco)),
               ),
             ),

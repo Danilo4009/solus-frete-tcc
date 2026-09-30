@@ -45,9 +45,9 @@ router.get('/carteira', async (req, res) => {
 // POST /perfil/carteira/recarga
 router.post('/carteira/recarga', async (req, res) => {
   const valor = Number(req.body?.valor || 0);
-  if (valor <= 0) return res.status(400).json({ erro: 'Valor invalido' });
+  if (valor <= 0) return res.status(400).json({ erro: 'Valor inválido' });
   const carteira = await one('SELECT * FROM carteira WHERE usuario_id = ?', [req.usuario.id]);
-  if (!carteira) return res.status(404).json({ erro: 'Carteira nao encontrada' });
+  if (!carteira) return res.status(404).json({ erro: 'Carteira não encontrada' });
   await query('UPDATE carteira SET saldo = saldo + ? WHERE id = ?', [valor, carteira.id]);
   await query(
     'INSERT INTO transacao_carteira (carteira_id, tipo, valor, descricao) VALUES (?,"recarga",?,?)',
@@ -56,6 +56,40 @@ router.post('/carteira/recarga', async (req, res) => {
 });
 
 // GET /perfil/favoritos
+// GET /perfil/motoristas-proximos?categoriaId=&lat=&lng=&limite=10
+// Motoristas disponiveis e homologados com veiculo da categoria, do mais perto
+// ao mais longe da coleta (distancia em linha reta, formula de Haversine).
+router.get('/motoristas-proximos', async (req, res) => {
+  const categoriaId = Number(req.query.categoriaId);
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  const limite = Math.max(1, Math.min(Number(req.query.limite) || 10, 10));
+  if (!categoriaId || Number.isNaN(lat) || Number.isNaN(lng)) {
+    return res.status(400).json({ erro: 'Informe categoria, latitude e longitude da coleta' });
+  }
+
+  const rows = await query(
+    `SELECT m.id AS motorista_id, u.nome, u.sobrenome, m.avaliacao_media, m.total_corridas,
+            MIN(CONCAT_WS(' ', v.marca, v.modelo)) AS veiculo,
+            MAX(f.id IS NOT NULL) AS favorito,
+            ROUND(6371 * 2 * ASIN(SQRT(
+              POW(SIN(RADIANS(m.latitude - ?) / 2), 2) +
+              COS(RADIANS(?)) * COS(RADIANS(m.latitude)) *
+              POW(SIN(RADIANS(m.longitude - ?) / 2), 2))), 1) AS distancia_km
+       FROM motorista m
+       JOIN usuario u ON u.id = m.usuario_id
+       JOIN veiculo v ON v.motorista_id = m.id AND v.categoria_id = ?
+                     AND v.ativo = 1 AND v.situacao_homologacao = 'aprovada'
+       LEFT JOIN motorista_favorito f ON f.motorista_id = m.id AND f.cliente_id = ?
+      WHERE m.disponivel = 1 AND m.situacao_homologacao = 'aprovada'
+        AND m.latitude IS NOT NULL AND m.longitude IS NOT NULL
+      GROUP BY m.id
+      ORDER BY distancia_km
+      LIMIT ${limite}`,
+    [lat, lat, lng, categoriaId, req.usuario.id]);
+  res.json(rows);
+});
+
 router.get('/favoritos', async (req, res) => {
   const rows = await query(
     `SELECT m.id AS motorista_id, u.nome, u.sobrenome, u.telefone, m.avaliacao_media, m.total_corridas,
@@ -87,7 +121,7 @@ router.post('/favoritos/convite', async (req, res) => {
     await query(
       'INSERT IGNORE INTO motorista_favorito (cliente_id, motorista_id, origem) VALUES (?,?,"convite")',
       [req.usuario.id, existente.id]);
-    return res.json({ vinculado: true, mensagem: 'Motorista ja e parceiro Solus e foi adicionado aos seus favoritos.' });
+    return res.json({ vinculado: true, mensagem: 'Motorista já é parceiro Solus e foi adicionado aos seus favoritos.' });
   }
 
   await query('INSERT INTO convite_motorista (cliente_id, telefone, nome) VALUES (?,?,?)',

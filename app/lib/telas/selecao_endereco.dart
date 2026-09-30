@@ -86,8 +86,8 @@ class _TelaSelecaoEnderecoState extends State<TelaSelecaoEndereco> {
               },
               decoration: InputDecoration(
                 hintText: widget.ehColeta
-                    ? 'Local de retirada (rua e numero)'
-                    : 'Local de entrega (rua e numero)',
+                    ? 'Local de retirada (rua e número)'
+                    : 'Local de entrega (rua e número)',
                 prefixIcon: Icon(
                   widget.ehColeta ? Icons.trip_origin : Icons.place,
                   color: widget.ehColeta ? Cores.primaria : Cores.destaque,
@@ -116,7 +116,7 @@ class _TelaSelecaoEnderecoState extends State<TelaSelecaoEndereco> {
                         if (_resultados.isEmpty)
                           const Padding(
                             padding: EdgeInsets.symmetric(vertical: 20),
-                            child: Text('Nenhum endereco encontrado.',
+                            child: Text('Nenhum endereço encontrado.',
                                 style: TextStyle(color: Cores.textoFraco)),
                           )
                         else
@@ -138,9 +138,9 @@ class _TelaSelecaoEnderecoState extends State<TelaSelecaoEndereco> {
                           padding: EdgeInsets.zero,
                           child: ListTile(
                             leading: const Icon(Icons.my_location, color: Cores.primaria),
-                            title: const Text('Usar minha localizacao atual'),
+                            title: const Text('Usar minha localização atual'),
                             subtitle: const Text(
-                              'No prototipo usa o primeiro endereco favorito',
+                              'No protótipo usa o primeiro endereço favorito',
                               style: TextStyle(fontSize: 12),
                             ),
                             onTap: _favoritos.isEmpty
@@ -150,7 +150,7 @@ class _TelaSelecaoEnderecoState extends State<TelaSelecaoEndereco> {
                         ),
                         const SizedBox(height: 16),
                         if (_favoritos.isNotEmpty) ...[
-                          const TituloSecao('Enderecos salvos'),
+                          const TituloSecao('Endereços salvos'),
                           Bloco(
                             padding: EdgeInsets.zero,
                             child: Column(
@@ -286,7 +286,7 @@ class _TelaDetalhesEnderecoState extends State<TelaDetalhesEndereco> {
     final e = widget.endereco;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalhes do endereco')),
+      appBar: AppBar(title: const Text('Detalhes do endereço')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -337,8 +337,8 @@ class _TelaDetalhesEnderecoState extends State<TelaDetalhesEndereco> {
                 TextField(
                   controller: _referencia,
                   decoration: const InputDecoration(
-                      labelText: 'Ponto de referencia',
-                      hintText: 'Em frente a praca, portao azul'),
+                      labelText: 'Ponto de referência',
+                      hintText: 'Em frente à praça, portão azul'),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -365,13 +365,13 @@ class _TelaDetalhesEnderecoState extends State<TelaDetalhesEndereco> {
                   onChanged: (v) => setState(() => _salvar = v ?? false),
                   contentPadding: EdgeInsets.zero,
                   controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Salvar este endereco'),
+                  title: const Text('Salvar este endereço'),
                 ),
                 if (_salvar)
                   TextField(
                     controller: _apelido,
                     decoration: const InputDecoration(
-                        labelText: 'Apelido', hintText: 'Casa, Loja, Deposito'),
+                        labelText: 'Apelido', hintText: 'Casa, Loja, Depósito'),
                   ),
               ],
             ),

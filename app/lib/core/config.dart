@@ -2,7 +2,9 @@
 class Config {
   /// false = roda com dados simulados em memoria (nao precisa de backend).
   /// true  = consome a API Express/MySQL em [baseUrl].
-  static const bool usarApi = true;
+  /// Pode ser sobrescrito com --dart-define=USAR_API=false.
+  static const bool usarApi =
+      bool.fromEnvironment('USAR_API', defaultValue: true);
 
   /// Android emulador: http://10.0.2.2:3333
   /// iOS simulador / desktop / web: http://localhost:3333

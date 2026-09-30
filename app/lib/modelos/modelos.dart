@@ -531,6 +531,42 @@ class MotoristaFavorito {
       );
 }
 
+/// Motorista disponivel perto do ponto de coleta, para a categoria escolhida.
+class MotoristaProximo {
+  final int motoristaId;
+  final String nome;
+  final double avaliacao;
+  final int totalCorridas;
+  final double distanciaKm;
+  final String? veiculo;
+  final bool favorito;
+
+  const MotoristaProximo({
+    required this.motoristaId,
+    required this.nome,
+    required this.avaliacao,
+    required this.totalCorridas,
+    required this.distanciaKm,
+    this.veiculo,
+    this.favorito = false,
+  });
+
+  /// Estimativa simples de chegada: ~25 km/h no transito urbano + 2 min.
+  int get minutosAteColeta => (distanciaKm / 25 * 60).round() + 2;
+
+  factory MotoristaProximo.doJson(Map<String, dynamic> j) => MotoristaProximo(
+        motoristaId: j['motorista_id'] as int,
+        nome: [j['nome'], j['sobrenome']]
+            .where((e) => e != null && (e as String).isNotEmpty)
+            .join(' '),
+        avaliacao: (j['avaliacao_media'] as num?)?.toDouble() ?? 0,
+        totalCorridas: (j['total_corridas'] as num?)?.toInt() ?? 0,
+        distanciaKm: (j['distancia_km'] as num?)?.toDouble() ?? 0,
+        veiculo: j['veiculo'] as String?,
+        favorito: (j['favorito'] ?? 0) == 1,
+      );
+}
+
 class Notificacao {
   final int id;
   final String titulo;

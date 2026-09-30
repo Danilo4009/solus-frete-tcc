@@ -6,9 +6,9 @@ const router = express.Router();
 
 const NIVEIS = ['expresso', 'padrao', 'economico'];
 const ROTULOS = {
-  expresso:  { nome: 'Expresso',  descricao: 'Alocacao prioritaria para entregas urgentes.' },
-  padrao:    { nome: 'Padrao',    descricao: 'Equilibrio entre prazo e preco.' },
-  economico: { nome: 'Economico', descricao: 'Carga agrupada, sem urgencia. Mais barato.' },
+  expresso:  { nome: 'Expresso',  descricao: 'Alocação prioritária para entregas urgentes.' },
+  padrao:    { nome: 'Padrão',    descricao: 'Equilíbrio entre prazo e preço.' },
+  economico: { nome: 'Econômico', descricao: 'Carga agrupada, sem urgência. Mais barato.' },
 };
 
 // POST /cotacao
@@ -16,11 +16,11 @@ const ROTULOS = {
 router.post('/', async (req, res) => {
   const { cidade = 'Sao Paulo', categoriaId, paradas = [], servicos = [], horas, cupom } = req.body || {};
 
-  if (!categoriaId) return res.status(400).json({ erro: 'Informe a categoria do veiculo' });
+  if (!categoriaId) return res.status(400).json({ erro: 'Informe a categoria do veículo' });
   if (paradas.length < 2) return res.status(400).json({ erro: 'Informe ao menos uma coleta e uma entrega' });
 
   const categoria = await one('SELECT * FROM categoria_veiculo WHERE id = ? AND ativo = 1', [categoriaId]);
-  if (!categoria) return res.status(404).json({ erro: 'Categoria nao encontrada' });
+  if (!categoria) return res.status(404).json({ erro: 'Categoria não encontrada' });
 
   const precos = await query(
     `SELECT * FROM tabela_preco
@@ -28,7 +28,7 @@ router.post('/', async (req, res) => {
       ORDER BY vigente_desde DESC`,
     [cidade, categoriaId]
   );
-  if (!precos.length) return res.status(404).json({ erro: 'Sem tabela de preco para esta cidade e veiculo' });
+  if (!precos.length) return res.status(404).json({ erro: 'Sem tabela de preço para esta cidade e veículo' });
 
   const km = distanciaRota(paradas);
 
@@ -81,8 +81,8 @@ router.post('/', async (req, res) => {
     cupom: registroCupom ? { codigo: registroCupom.codigo, descricao: registroCupom.descricao } : null,
     opcoes,
     avisos: [
-      'Pedagio e estacionamento nao estao inclusos e sao acertados direto com o parceiro.',
-      'O peso declarado nao pode exceder a capacidade do veiculo escolhido.',
+      'Pedágio e estacionamento não estão inclusos e são acertados direto com o parceiro.',
+      'O peso declarado não pode exceder a capacidade do veículo escolhido.',
     ],
   });
 });

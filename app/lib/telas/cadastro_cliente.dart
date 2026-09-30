@@ -22,11 +22,11 @@ class _TelaCadastroClienteState extends State<TelaCadastroCliente> {
   bool _aceite = false;
 
   static const _setores = [
-    'Pessoa fisica',
+    'Pessoa física',
     'Varejo',
-    'Alimentacao',
-    'Construcao',
-    'Industria',
+    'Alimentação',
+    'Construção',
+    'Indústria',
     'E-commerce',
     'Outro',
   ];
@@ -61,7 +61,7 @@ class _TelaCadastroClienteState extends State<TelaCadastroCliente> {
       Navigator.of(context).popUntil((r) => r.isFirst);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(sessao.erro ?? 'Nao foi possivel cadastrar')),
+        SnackBar(content: Text(sessao.erro ?? 'Não foi possível cadastrar')),
       );
     }
   }
@@ -103,7 +103,7 @@ class _TelaCadastroClienteState extends State<TelaCadastroCliente> {
                         labelText: 'Celular *', prefixText: '+55 '),
                     validator: (v) {
                       final d = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                      return d.length < 10 ? 'Informe DDD e numero' : null;
+                      return d.length < 10 ? 'Informe DDD e número' : null;
                     },
                   ),
                   const SizedBox(height: 12),
@@ -113,7 +113,7 @@ class _TelaCadastroClienteState extends State<TelaCadastroCliente> {
                     decoration: const InputDecoration(labelText: 'E-mail'),
                     validator: (v) {
                       if (v == null || v.isEmpty) return null;
-                      return v.contains('@') ? null : 'E-mail invalido';
+                      return v.contains('@') ? null : 'E-mail inválido';
                     },
                   ),
                   const SizedBox(height: 12),
@@ -122,12 +122,12 @@ class _TelaCadastroClienteState extends State<TelaCadastroCliente> {
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Senha *'),
                     validator: (v) =>
-                        (v == null || v.length < 6) ? 'Minimo de 6 caracteres' : null,
+                        (v == null || v.length < 6) ? 'Mínimo de 6 caracteres' : null,
                   ),
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     value: _setor,
-                    decoration: const InputDecoration(labelText: 'Setor de atuacao'),
+                    decoration: const InputDecoration(labelText: 'Setor de atuação'),
                     items: [
                       for (final s in _setores)
                         DropdownMenuItem(value: s, child: Text(s)),
@@ -147,7 +147,7 @@ class _TelaCadastroClienteState extends State<TelaCadastroCliente> {
                     contentPadding: EdgeInsets.zero,
                     controlAffinity: ListTileControlAffinity.leading,
                     title: const Text(
-                      'Li e aceito os termos de uso, a politica de privacidade e a politica de itens proibidos.',
+                      'Li e aceito os termos de uso, a política de privacidade e a política de itens proibidos.',
                       style: TextStyle(fontSize: 13),
                     ),
                   ),

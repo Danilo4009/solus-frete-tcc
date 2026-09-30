@@ -62,7 +62,7 @@ class TelaPerfil extends StatelessWidget {
             children: [
               _Item(
                 icone: Icons.badge_outlined,
-                titulo: 'Informacoes pessoais',
+                titulo: 'Informações pessoais',
                 subtitulo: 'Nome, telefone, e-mail e setor',
                 onTap: () {},
               ),
@@ -80,7 +80,7 @@ class TelaPerfil extends StatelessWidget {
                 icone: Icons.apartment_outlined,
                 titulo: 'Perfil comercial (PJ)',
                 subtitulo: usuario?.empresa == null
-                    ? 'Relatorios mensais, carteira compartilhada e usuarios'
+                    ? 'Relatórios mensais, carteira compartilhada e usuários'
                     : usuario!.empresa!.razaoSocial,
                 onTap: () {},
               ),
@@ -88,7 +88,7 @@ class TelaPerfil extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        const TituloSecao('Preferencias'),
+        const TituloSecao('Preferências'),
         Bloco(
           padding: EdgeInsets.zero,
           child: Column(
@@ -96,21 +96,21 @@ class TelaPerfil extends StatelessWidget {
               _Item(
                 icone: Icons.assignment_turned_in_outlined,
                 titulo: 'Comprovante de entrega',
-                subtitulo: 'Exigir foto ou assinatura por padrao',
+                subtitulo: 'Exigir foto ou assinatura por padrão',
                 onTap: () {},
               ),
               const Divider(indent: 16, endIndent: 16, height: 1),
               _Item(
                 icone: Icons.mail_outline,
                 titulo: 'Recibos por e-mail',
-                subtitulo: 'Enviar recibo eletronico apos cada pedido',
+                subtitulo: 'Enviar recibo eletrônico após cada pedido',
                 onTap: () {},
               ),
               const Divider(indent: 16, endIndent: 16, height: 1),
               _Item(
                 icone: Icons.notifications_none_rounded,
-                titulo: 'Notificacoes',
-                subtitulo: 'Etapas do pedido e promocoes',
+                titulo: 'Notificações',
+                subtitulo: 'Etapas do pedido e promoções',
                 onTap: () {},
               ),
             ],
@@ -131,8 +131,8 @@ class TelaPerfil extends StatelessWidget {
               const Divider(indent: 16, endIndent: 16, height: 1),
               _Item(
                 icone: Icons.price_change_outlined,
-                titulo: 'Padrao de precos',
-                subtitulo: 'Tabela por cidade e veiculo',
+                titulo: 'Padrão de preços',
+                subtitulo: 'Tabela por cidade e veículo',
                 onTap: () {},
               ),
               const Divider(indent: 16, endIndent: 16, height: 1),
@@ -150,11 +150,11 @@ class TelaPerfil extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const TituloSecao('Modo do prototipo'),
+              const TituloSecao('Modo do protótipo'),
               Text(
                 Config.usarApi
                     ? 'Consumindo a API em ${Config.baseUrl}'
-                    : 'Rodando com dados simulados em memoria. '
+                    : 'Rodando com dados simulados em memória. '
                         'Para conectar ao MySQL, mude Config.usarApi para true.',
                 style: const TextStyle(fontSize: 12.5, color: Cores.textoFraco, height: 1.4),
               ),
@@ -173,7 +173,7 @@ class TelaPerfil extends StatelessWidget {
         ),
         const SizedBox(height: 20),
         const Center(
-          child: Text('Solus Frete - prototipo TCC v1.0',
+          child: Text('Solus Frete - protótipo TCC v1.0',
               style: TextStyle(fontSize: 11.5, color: Cores.textoFraco)),
         ),
       ],

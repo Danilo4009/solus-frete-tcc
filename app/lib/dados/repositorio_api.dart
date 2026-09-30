@@ -29,7 +29,7 @@ class RepositorioApi implements Repositorio {
     if (r.statusCode >= 400) {
       final msg = corpo is Map && corpo['erro'] != null
           ? corpo['erro'] as String
-          : 'Falha na requisicao (${r.statusCode})';
+          : 'Falha na requisição (${r.statusCode})';
       throw ErroApi(msg, r.statusCode);
     }
     return corpo;
@@ -89,6 +89,22 @@ class RepositorioApi implements Repositorio {
   Future<List<CategoriaVeiculo>> veiculos({String cidade = Config.cidadePadrao}) async {
     final j = await _get('/catalogo/veiculos', {'cidade': cidade}) as List;
     return j.map((e) => CategoriaVeiculo.doJson(e as Map<String, dynamic>)).toList();
+  }
+
+  @override
+  Future<List<MotoristaProximo>> motoristasProximos({
+    required int categoriaId,
+    required double latitude,
+    required double longitude,
+    int limite = 10,
+  }) async {
+    final j = await _get('/perfil/motoristas-proximos', {
+      'categoriaId': '$categoriaId',
+      'lat': '$latitude',
+      'lng': '$longitude',
+      'limite': '$limite',
+    }) as List;
+    return j.map((e) => MotoristaProximo.doJson(e as Map<String, dynamic>)).toList();
   }
 
   @override

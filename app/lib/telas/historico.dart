@@ -51,7 +51,7 @@ class _TelaHistoricoState extends State<TelaHistorico>
                   controller: _busca,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    hintText: 'Buscar por codigo ou endereco',
+                    hintText: 'Buscar por código ou endereço',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _busca.text.isEmpty
                         ? null
@@ -72,7 +72,7 @@ class _TelaHistoricoState extends State<TelaHistorico>
                 indicatorColor: Cores.primaria,
                 tabs: const [
                   Tab(text: 'Em andamento'),
-                  Tab(text: 'Concluidos'),
+                  Tab(text: 'Concluídos'),
                   Tab(text: 'Cancelados'),
                 ],
               ),
@@ -132,7 +132,7 @@ class _ListaPedidosState extends State<_ListaPedidos> {
       return const Vazio(
         icone: Icons.inbox_outlined,
         titulo: 'Nenhum pedido aqui',
-        descricao: 'Quando voce solicitar um frete, ele aparece nesta lista.',
+        descricao: 'Quando você solicitar um frete, ele aparece nesta lista.',
       );
     }
     return RefreshIndicator(

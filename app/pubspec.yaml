@@ -25,6 +25,7 @@ flutter:
   assets:
     - assets/logo_completo.png
     - assets/icone_app.png
+    - assets/marca_dagua_login.png
 
 flutter_launcher_icons:
   android: true

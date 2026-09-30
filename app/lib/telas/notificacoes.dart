@@ -47,7 +47,7 @@ class _TelaNotificacoesState extends State<TelaNotificacoes> {
             labelColor: Cores.primaria,
             unselectedLabelColor: Cores.textoFraco,
             indicatorColor: Cores.primaria,
-            tabs: [Tab(text: 'Notificacoes'), Tab(text: 'Promocoes')],
+            tabs: [Tab(text: 'Notificações'), Tab(text: 'Promoções')],
           ),
         ),
         body: _carregando

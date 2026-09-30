@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import '../core/config.dart';
+import '../core/formato.dart';
 import '../modelos/modelos.dart';
 import 'repositorio.dart';
 
@@ -24,7 +25,7 @@ class RepositorioMock implements Repositorio {
   final List<TransacaoCarteira> _transacoes = [];
 
   static const _motoristas = [
-    ('Jose Bezerra', 4.85, 312),
+    ('José Bezerra', 4.85, 312),
     ('Aline Souza', 4.92, 128),
     ('Rafael Nunes', 4.70, 64),
   ];
@@ -50,14 +51,14 @@ class RepositorioMock implements Repositorio {
           descricao: 'Carga e descarga porta a porta feita pelo motorista.', preco: 70),
       ServicoAdicional(id: 2, codigo: 'ajudante_extra', nome: 'Ajudante extra',
           descricao: 'Motorista mais um ajudante para carga e descarga.', preco: 140),
-      ServicoAdicional(id: 3, codigo: 'mudanca_completa', nome: 'Mudanca completa',
-          descricao: 'Motorista e ajudante com manuseio de moveis.', preco: 190),
+      ServicoAdicional(id: 3, codigo: 'mudanca_completa', nome: 'Mudança completa',
+          descricao: 'Motorista e ajudante com manuseio de móveis.', preco: 190),
       ServicoAdicional(id: 4, codigo: 'tempo_espera', nome: 'Tempo de espera',
-          descricao: 'Espera adicional de ate 60 minutos no local.', preco: 45),
-      ServicoAdicional(id: 5, codigo: 'embalagem', nome: 'Embalagem e protecao',
-          descricao: 'Plastico bolha e cinta para itens frageis.', preco: 35),
+          descricao: 'Espera adicional de até 60 minutos no local.', preco: 45),
+      ServicoAdicional(id: 5, codigo: 'embalagem', nome: 'Embalagem e proteção',
+          descricao: 'Plástico bolha e cinta para itens frágeis.', preco: 35),
       ServicoAdicional(id: 6, codigo: 'coleta_agendada', nome: 'Janela de coleta garantida',
-          descricao: 'Compromisso de coleta dentro de uma hora especifica.', preco: 25),
+          descricao: 'Compromisso de coleta dentro de uma hora específica.', preco: 25),
     ];
 
     List<ServicoAdicional> para(String codigo) {
@@ -85,11 +86,11 @@ class RepositorioMock implements Repositorio {
           comprimentoM: 1.0, larguraM: 0.8, alturaM: 0.6, pesoMaxKg: 150,
           valorHora: 52, servicos: para('carro_hatch')),
       CategoriaVeiculo(id: 3, codigo: 'carro', nome: 'Carro',
-          descricao: 'Volumes medios no porta-malas e bancos.',
+          descricao: 'Volumes médios no porta-malas e bancos.',
           comprimentoM: 1.2, larguraM: 0.9, alturaM: 0.7, pesoMaxKg: 200,
           valorHora: 58, servicos: para('carro')),
-      CategoriaVeiculo(id: 4, codigo: 'utilitario', nome: 'Utilitario / Pick-Up',
-          descricao: 'Cargas medias, obra leve e equipamentos.',
+      CategoriaVeiculo(id: 4, codigo: 'utilitario', nome: 'Utilitário / Pick-Up',
+          descricao: 'Cargas médias, obra leve e equipamentos.',
           comprimentoM: 1.8, larguraM: 1.4, alturaM: 1.0, pesoMaxKg: 700,
           valorHora: 78, servicos: para('utilitario')),
       CategoriaVeiculo(id: 5, codigo: 'van', nome: 'Van',
@@ -97,39 +98,39 @@ class RepositorioMock implements Repositorio {
           comprimentoM: 2.4, larguraM: 1.5, alturaM: 1.4, pesoMaxKg: 1000,
           valorHora: 92, servicos: para('van')),
       CategoriaVeiculo(id: 6, codigo: 'carreto', nome: 'Carreto',
-          descricao: 'Ideal para mudancas ou materiais grandes e pesados.',
+          descricao: 'Ideal para mudanças ou materiais grandes e pesados.',
           comprimentoM: 3.0, larguraM: 1.8, alturaM: 2.0, pesoMaxKg: 1500,
           valorHora: 110, servicos: para('carreto')),
-      CategoriaVeiculo(id: 7, codigo: 'caminhao_35', nome: 'Caminhao 3/4',
-          descricao: 'Cargas paletizadas e mudancas completas.',
+      CategoriaVeiculo(id: 7, codigo: 'caminhao_35', nome: 'Caminhão 3/4',
+          descricao: 'Cargas paletizadas e mudanças completas.',
           comprimentoM: 4.5, larguraM: 2.1, alturaM: 2.2, pesoMaxKg: 3500,
           valorHora: 160, servicos: para('caminhao_35')),
-      CategoriaVeiculo(id: 8, codigo: 'caminhao_75', nome: 'Caminhao Toco',
-          descricao: 'Carga fechada e transferencias entre cidades.',
+      CategoriaVeiculo(id: 8, codigo: 'caminhao_75', nome: 'Caminhão Toco',
+          descricao: 'Carga fechada e transferências entre cidades.',
           comprimentoM: 6.0, larguraM: 2.4, alturaM: 2.5, pesoMaxKg: 7500,
           valorHora: 220, servicos: para('caminhao_75')),
     ];
 
     _enderecos.addAll(const [
       Endereco(id: 1, apelido: 'Casa', logradouro: 'Rua Salvador Nunes', numero: '120',
-          complemento: 'Casa 2', referencia: 'Em frente a praca', bairro: 'Jardim Piratininga',
+          complemento: 'Casa 2', referencia: 'Em frente à praça', bairro: 'Jardim Piratininga',
           cidade: 'Osasco', uf: 'SP', latitude: -23.5320, longitude: -46.7920,
           contatoNome: 'Danilo', contatoTelefone: '11940135904', favorito: true),
       Endereco(id: 2, apelido: 'Trabalho', logradouro: 'Avenida Paulista', numero: '1159',
-          complemento: '9o andar', referencia: 'Proximo ao MASP', bairro: 'Bela Vista',
-          cidade: 'Sao Paulo', uf: 'SP', latitude: -23.5660, longitude: -46.6520,
-          contatoNome: 'Recepcao', contatoTelefone: '1133334444', favorito: true),
+          complemento: '9º andar', referencia: 'Próximo ao MASP', bairro: 'Bela Vista',
+          cidade: 'São Paulo', uf: 'SP', latitude: -23.5660, longitude: -46.6520,
+          contatoNome: 'Recepção', contatoTelefone: '1133334444', favorito: true),
       Endereco(id: 3, logradouro: 'Rua Pastoril de Nanuque', numero: '196',
-          bairro: 'Ponte Rasa', cidade: 'Sao Paulo', uf: 'SP',
+          bairro: 'Ponte Rasa', cidade: 'São Paulo', uf: 'SP',
           latitude: -23.5170, longitude: -46.4780),
-      Endereco(id: 4, logradouro: 'Rua 25 de Marco', numero: '800', bairro: 'Centro',
-          cidade: 'Sao Paulo', uf: 'SP', latitude: -23.5430, longitude: -46.6330),
+      Endereco(id: 4, logradouro: 'Rua 25 de Março', numero: '800', bairro: 'Centro',
+          cidade: 'São Paulo', uf: 'SP', latitude: -23.5430, longitude: -46.6330),
       Endereco(id: 5, logradouro: 'Rua Cabo Diogo Oliveira', numero: '45',
-          bairro: 'Vila Leopoldina', cidade: 'Sao Paulo', uf: 'SP',
+          bairro: 'Vila Leopoldina', cidade: 'São Paulo', uf: 'SP',
           latitude: -23.5290, longitude: -46.7360),
     ]);
 
-    _favoritos.add(const MotoristaFavorito(motoristaId: 1, nome: 'Jose Bezerra',
+    _favoritos.add(const MotoristaFavorito(motoristaId: 1, nome: 'José Bezerra',
         telefone: '11977776666', avaliacao: 4.85, totalCorridas: 312,
         disponivel: true, veiculos: 'Carreto'));
 
@@ -141,7 +142,7 @@ class RepositorioMock implements Repositorio {
     ]);
 
     _promocionais.add(Notificacao(id: 900, titulo: 'Cupom SOLUS10',
-        mensagem: 'Use SOLUS10 e ganhe R\$ 10 no proximo frete.',
+        mensagem: 'Use SOLUS10 e ganhe R\$ 10 no próximo frete.',
         quando: DateTime.now().subtract(const Duration(days: 2))));
 
     // Pedido concluido de exemplo
@@ -158,7 +159,7 @@ class RepositorioMock implements Repositorio {
       carga: const Carga(tipoItem: 'outros', volumes: 1, faixaPeso: 'ate_50',
           observacoes: 'Envelope com contratos'),
       eventos: [
-        EventoPedido(situacao: 'cotado', descricao: 'Cotacao gerada',
+        EventoPedido(situacao: 'cotado', descricao: 'Cotação gerada',
             quando: DateTime.now().subtract(const Duration(days: 7, minutes: 50))),
         EventoPedido(situacao: 'alocado', descricao: 'Aline Souza aceitou',
             quando: DateTime.now().subtract(const Duration(days: 7, minutes: 45))),
@@ -175,7 +176,7 @@ class RepositorioMock implements Repositorio {
       tipoRetirada: 'imediata', categoriaNome: 'Carreto', distanciaKm: 18.6,
       valorFrete: 148.72, valorAdicionais: 70, valorTotal: 218.72,
       formaPagamento: 'pix', favoritosPrimeiro: true,
-      motoristaNome: 'Jose Bezerra', motoristaAvaliacao: 4.85, veiculoPlaca: 'ABC1D23',
+      motoristaNome: 'José Bezerra', motoristaAvaliacao: 4.85, veiculoPlaca: 'ABC1D23',
       criadoEm: DateTime.now().subtract(const Duration(hours: 1)),
       paradas: [
         Parada(tipo: 'coleta', endereco: _enderecos[0], situacao: 'concluida'),
@@ -183,13 +184,13 @@ class RepositorioMock implements Repositorio {
       ],
       carga: const Carga(tipoItem: 'moveis_eletrodomesticos', volumes: 4,
           faixaPeso: 'de_300_a_750', fragil: true,
-          observacoes: 'Uma mesa de vidro, favor nao empilhar'),
+          observacoes: 'Uma mesa de vidro, favor não empilhar'),
       servicos: const [
         ServicoAdicional(id: 1, codigo: 'ajuda_motorista',
             nome: 'Ajuda do motorista', preco: 70),
       ],
       eventos: [
-        EventoPedido(situacao: 'cotado', descricao: 'Cotacao gerada',
+        EventoPedido(situacao: 'cotado', descricao: 'Cotação gerada',
             quando: DateTime.now().subtract(const Duration(hours: 1))),
         EventoPedido(situacao: 'aguardando_alocacao',
             descricao: 'Ofertado aos seus motoristas favoritos',
@@ -253,11 +254,11 @@ class RepositorioMock implements Repositorio {
 
   @override
   Future<String> cadastrarMotorista(Map<String, dynamic> dados) => _demora(
-      'Cadastro enviado para homologacao da operacao Solus. Voce recebera um aviso quando for aprovado.');
+      'Cadastro enviado para homologação da operação Solus. Você receberá um aviso quando for aprovado.');
 
   @override
   Future<String> cadastrarTransportadora(Map<String, dynamic> dados) => _demora(
-      'Transportadora enviada para homologacao. Apos a aprovacao voce podera cadastrar a frota.');
+      'Transportadora enviada para homologação. Após a aprovação você poderá cadastrar a frota.');
 
   // ------------------------------------------------------------- catalogo
   @override
@@ -285,7 +286,7 @@ class RepositorioMock implements Repositorio {
       encontrados.add(Endereco(
         id: null,
         logradouro: termo,
-        cidade: Config.cidadePadrao,
+        cidade: 'São Paulo',
         uf: 'SP',
         latitude: -23.55 + _rnd.nextDouble() * 0.06 - 0.03,
         longitude: -46.65 + _rnd.nextDouble() * 0.12 - 0.06,
@@ -334,9 +335,9 @@ class RepositorioMock implements Repositorio {
 
     final opcoes = <OpcaoCotacao>[];
     const rotulos = {
-      'expresso': ('Expresso', 'Alocacao prioritaria para entregas urgentes.'),
-      'padrao': ('Padrao', 'Equilibrio entre prazo e preco.'),
-      'economico': ('Economico', 'Carga agrupada, sem urgencia. Mais barato.'),
+      'expresso': ('Expresso', 'Alocação prioritária para entregas urgentes.'),
+      'padrao': ('Padrão', 'Equilíbrio entre prazo e preço.'),
+      'economico': ('Econômico', 'Carga agrupada, sem urgência. Mais barato.'),
     };
 
     for (final nivel in const ['expresso', 'padrao', 'economico']) {
@@ -372,10 +373,78 @@ class RepositorioMock implements Repositorio {
       opcoes: opcoes,
       cupomAplicado: opcoes.any((o) => o.desconto > 0) ? cupom?.toUpperCase() : null,
       avisos: const [
-        'Pedagio e estacionamento nao estao inclusos e sao acertados direto com o parceiro.',
-        'O peso declarado nao pode exceder a capacidade do veiculo escolhido.',
+        'Pedágio e estacionamento não estão inclusos e são acertados direto com o parceiro.',
+        'O peso declarado não pode exceder a capacidade do veículo escolhido.',
       ],
     ));
+  }
+
+  // --------------------------------------------------- motoristas proximos
+  static const _nomesMotoristas = [
+    'Carlos Almeida', 'Fernanda Lima', 'Marcos Ribeiro', 'Juliana Costa',
+    'Paulo Henrique', 'Renata Dias', 'Thiago Martins', 'Patrícia Gomes',
+    'André Santos', 'Camila Rocha', 'Eduardo Freitas', 'Larissa Pereira',
+    'Rodrigo Barbosa', 'Vanessa Moura', 'Lucas Teixeira', 'Sérgio Cardoso',
+  ];
+
+  static const _modelos = {
+    'moto': ['Honda CG 160 Cargo', 'Yamaha Factor 150', 'Honda Pop 110i'],
+    'carro_hatch': ['Fiat Mobi', 'Renault Kwid', 'VW Gol'],
+    'carro': ['Chevrolet Onix', 'Hyundai HB20', 'Fiat Argo'],
+    'utilitario': ['Fiat Strada', 'VW Saveiro', 'Fiat Fiorino'],
+    'van': ['Renault Master', 'Fiat Ducato', 'Mercedes Sprinter'],
+    'carreto': ['Mercedes Sprinter Chassi', 'Iveco Daily', 'Kia Bongo'],
+    'caminhao_35': ['VW Delivery 9.170', 'Mercedes Accelo', 'Iveco Tector'],
+    'caminhao_75': ['VW Constellation', 'Mercedes Atego', 'Volvo VM'],
+  };
+
+  @override
+  Future<List<MotoristaProximo>> motoristasProximos({
+    required int categoriaId,
+    required double latitude,
+    required double longitude,
+    int limite = 10,
+  }) {
+    final categoria = _veiculos.firstWhere((v) => v.id == categoriaId);
+    // Mesma coleta e veiculo geram sempre a mesma lista.
+    final rnd = Random(categoriaId * 7919 +
+        (latitude * 1000).round() * 31 +
+        (longitude * 1000).round());
+
+    // Veiculos pequenos sao mais comuns na rua do que caminhoes.
+    final quantidade = switch (categoria.codigo) {
+      'moto' || 'carro_hatch' || 'carro' => 8 + rnd.nextInt(5),
+      'utilitario' || 'van' || 'carreto' => 4 + rnd.nextInt(5),
+      _ => 1 + rnd.nextInt(4),
+    };
+    final nomes = List.of(_nomesMotoristas)..shuffle(rnd);
+    final modelos = _modelos[categoria.codigo] ?? const ['Veículo cadastrado'];
+
+    final lista = <MotoristaProximo>[
+      // Favoritos com essa categoria de veiculo aparecem se estiverem livres.
+      for (final f in _favoritos)
+        if (f.disponivel && f.veiculos == categoria.nome)
+          MotoristaProximo(
+            motoristaId: f.motoristaId,
+            nome: f.nome,
+            avaliacao: f.avaliacao,
+            totalCorridas: f.totalCorridas,
+            distanciaKm: double.parse((0.8 + rnd.nextDouble() * 5).toStringAsFixed(1)),
+            veiculo: modelos.first,
+            favorito: true,
+          ),
+      for (var i = 0; i < quantidade; i++)
+        MotoristaProximo(
+          motoristaId: 500 + categoriaId * 100 + i,
+          nome: nomes[i % nomes.length],
+          avaliacao: double.parse((4.3 + rnd.nextDouble() * 0.7).toStringAsFixed(2)),
+          totalCorridas: 15 + rnd.nextInt(600),
+          distanciaKm: double.parse((0.3 + rnd.nextDouble() * 7.5).toStringAsFixed(1)),
+          veiculo: modelos[rnd.nextInt(modelos.length)],
+        ),
+    ]..sort((a, b) => a.distanciaKm.compareTo(b.distanciaKm));
+
+    return _demora(lista.take(limite).toList());
   }
 
   // -------------------------------------------------------------- pedidos
@@ -509,7 +578,7 @@ class RepositorioMock implements Repositorio {
         EventoPedido(situacao: proxima,
             descricao: proxima == 'alocado'
                 ? '${motorista.$1} aceitou o pedido'
-                : 'Atualizacao de etapa',
+                : 'Atualização de etapa',
             quando: DateTime.now()),
       ],
     );
@@ -517,7 +586,7 @@ class RepositorioMock implements Repositorio {
     _pedidos[indice] = atualizado;
     _operacionais.insert(0, Notificacao(id: ++_proximoId,
         titulo: 'Pedido ${atual.codigo}',
-        mensagem: 'Nova etapa: ${proxima.replaceAll('_', ' ')}',
+        mensagem: 'Nova etapa: ${rotuloSituacao(proxima)}',
         quando: DateTime.now()));
     return _demora(atualizado);
   }

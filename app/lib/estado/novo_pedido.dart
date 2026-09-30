@@ -44,6 +44,11 @@ class NovoPedido extends ChangeNotifier {
   bool cotando = false;
   String? erro;
 
+  // --- motoristas perto da coleta ---
+  List<MotoristaProximo> motoristasProximos = [];
+  bool buscandoMotoristas = false;
+  int _buscaMotoristas = 0; // descarta respostas de buscas antigas
+
   List<Endereco> get paradas => [if (coleta != null) coleta!, ...entregas];
 
   bool get roteiroCompleto => coleta != null && entregas.isNotEmpty;
@@ -65,27 +70,51 @@ class NovoPedido extends ChangeNotifier {
     'acima_750': 3500,
   };
 
+  /// Veiculos pequenos demais para moveis e eletrodomesticos.
+  static const _semEspacoParaMoveis = {'moto', 'carro_hatch', 'carro'};
+
+  /// Motivo pelo qual o veiculo nao pode levar a carga declarada,
+  /// ou null se ele comporta a carga.
+  String? motivoIndisponivel(CategoriaVeiculo c) =>
+      motivoIncompativel(carga, c);
+
+  static String? motivoIncompativel(Carga carga, CategoriaVeiculo c) {
+    final peso = _pesoFaixa[carga.faixaPeso] ?? 0;
+    if (peso > c.pesoMaxKg) {
+      return 'Suporta até ${c.pesoMaxKg} kg';
+    }
+    if (carga.tipoItem == 'moveis_eletrodomesticos' &&
+        _semEspacoParaMoveis.contains(c.codigo)) {
+      return 'Não cabe móveis ou eletrodomésticos';
+    }
+    if (c.codigo == 'moto' && carga.volumes > 2) {
+      return 'Leva no máximo 2 volumes';
+    }
+    return null;
+  }
+
   String? get avisoCapacidade {
     final c = categoria;
     if (c == null) return null;
-    final peso = _pesoFaixa[carga.faixaPeso] ?? 0;
-    if (peso > c.pesoMaxKg) {
-      return 'O peso declarado (${carga.faixaPeso == 'acima_750' ? 'acima de 750 kg' : 'ate $peso kg'}) '
-          'excede a capacidade do ${c.nome} (${c.pesoMaxKg} kg). Escolha um veiculo maior.';
-    }
-    return null;
+    final motivo = motivoIndisponivel(c);
+    if (motivo == null) return null;
+    return 'O ${c.nome} não comporta esta carga ($motivo). Escolha outro veículo.';
   }
 
   List<String> get pendenciasParaConfirmar {
     final faltas = <String>[];
     if (!roteiroCompleto) faltas.add('Informe coleta e entrega');
-    if (categoria == null) faltas.add('Selecione o veiculo');
+    if (categoria == null) faltas.add('Selecione o veículo');
     if (formaPagamento == null) faltas.add('Selecione a forma de pagamento');
-    if (agendado && quando == null) faltas.add('Informe a data e hora do agendamento');
+    if (agendado && quando == null) {
+      faltas.add('Informe a data e hora do agendamento');
+    }
     if (agendado && quando != null && !quando!.isAfter(DateTime.now())) {
       faltas.add('O agendamento deve ser no futuro');
     }
-    if (avisoCapacidade != null) faltas.add('Ajuste o veiculo para o peso declarado');
+    if (avisoCapacidade != null) {
+      faltas.add('Escolha um veículo que comporte a carga');
+    }
     return faltas;
   }
 
@@ -103,6 +132,33 @@ class NovoPedido extends ChangeNotifier {
     cotacao = null;
     notifyListeners();
     cotar();
+    buscarMotoristasProximos();
+  }
+
+  /// Ate 10 motoristas do veiculo escolhido, perto do ponto de coleta.
+  Future<void> buscarMotoristasProximos() async {
+    final busca = ++_buscaMotoristas;
+    final c = categoria;
+    final lat = coleta?.latitude, lng = coleta?.longitude;
+    if (c == null || lat == null || lng == null) {
+      motoristasProximos = [];
+      buscandoMotoristas = false;
+      notifyListeners();
+      return;
+    }
+    buscandoMotoristas = true;
+    notifyListeners();
+    try {
+      final lista = await _repo.motoristasProximos(
+          categoriaId: c.id, latitude: lat, longitude: lng);
+      if (busca != _buscaMotoristas) return;
+      motoristasProximos = lista;
+    } catch (_) {
+      if (busca != _buscaMotoristas) return;
+      motoristasProximos = [];
+    }
+    buscandoMotoristas = false;
+    notifyListeners();
   }
 
   void adicionarEntrega(Endereco e) {
@@ -134,6 +190,7 @@ class NovoPedido extends ChangeNotifier {
     cotacao = null;
     notifyListeners();
     cotar();
+    buscarMotoristasProximos();
   }
 
   void definirAgendamento(bool ativo, [DateTime? data]) {
@@ -143,10 +200,13 @@ class NovoPedido extends ChangeNotifier {
   }
 
   void selecionarCategoria(CategoriaVeiculo c) {
-    if (categoria?.id != c.id) servicosSelecionados.clear();
+    if (motivoIndisponivel(c) != null) return;
+    final trocou = categoria?.id != c.id;
+    if (trocou) servicosSelecionados.clear();
     categoria = c;
     notifyListeners();
     cotar();
+    if (trocou) buscarMotoristasProximos();
   }
 
   void alternarServico(int id) {
@@ -165,8 +225,16 @@ class NovoPedido extends ChangeNotifier {
     cotar();
   }
 
+  /// Se a nova carga nao couber no veiculo escolhido, o veiculo e desmarcado
+  /// para o cliente escolher outro.
   void definirCarga(Carga nova) {
     carga = nova;
+    if (categoria != null && motivoIndisponivel(categoria!) != null) {
+      categoria = null;
+      servicosSelecionados.clear();
+      cotacao = null;
+      buscarMotoristasProximos(); // sem veiculo, a lista esvazia
+    }
     notifyListeners();
   }
 
@@ -273,6 +341,9 @@ class NovoPedido extends ChangeNotifier {
     cotacao = null;
     nivelSelecionado = 'padrao';
     erro = null;
+    motoristasProximos = [];
+    buscandoMotoristas = false;
+    _buscaMotoristas++;
     notifyListeners();
   }
 }

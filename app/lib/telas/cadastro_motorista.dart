@@ -100,11 +100,11 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
   Future<void> _finalizar() async {
     if (!_formVeiculo.currentState!.validate()) return;
     if (_categoria == null) {
-      _avisar('Selecione a categoria do veiculo');
+      _avisar('Selecione a categoria do veículo');
       return;
     }
     if (!_crlvAnexado) {
-      _avisar('Anexe o documento do veiculo');
+      _avisar('Anexe o documento do veículo');
       return;
     }
     if (!_aceite) {
@@ -135,7 +135,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
 
     if (!mounted) return;
     if (mensagem == null) {
-      _avisar(sessao.erro ?? 'Nao foi possivel enviar o cadastro');
+      _avisar(sessao.erro ?? 'Não foi possível enviar o cadastro');
       return;
     }
     await showDialog<void>(
@@ -164,7 +164,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
       appBar: AppBar(title: const Text('Cadastro de motorista parceiro')),
       body: Column(
         children: [
-          PassosIndicador(atual: _passo, rotulos: const ['Dados', 'Habilitacao', 'Veiculo']),
+          PassosIndicador(atual: _passo, rotulos: const ['Dados', 'Habilitação', 'Veículo']),
           Expanded(
             child: IndexedStack(
               index: _passo,
@@ -193,7 +193,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                     child: FilledButton(
                       onPressed: carregando ? null : _avancar,
                       child: Text(_passo == 2
-                          ? (carregando ? 'Enviando...' : 'Enviar para analise')
+                          ? (carregando ? 'Enviando...' : 'Enviar para análise')
                           : 'Continuar'),
                     ),
                   ),
@@ -239,7 +239,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                         labelText: 'CPF *', hintText: '000.000.000-00'),
                     validator: (v) {
                       final d = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                      return d.length != 11 ? 'CPF deve ter 11 digitos' : null;
+                      return d.length != 11 ? 'CPF deve ter 11 dígitos' : null;
                     },
                   ),
                   const SizedBox(height: 12),
@@ -250,7 +250,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                         labelText: 'Celular *', prefixText: '+55 '),
                     validator: (v) {
                       final d = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                      return d.length < 10 ? 'Informe DDD e numero' : null;
+                      return d.length < 10 ? 'Informe DDD e número' : null;
                     },
                   ),
                   const SizedBox(height: 12),
@@ -265,7 +265,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Senha *'),
                     validator: (v) =>
-                        (v == null || v.length < 6) ? 'Minimo de 6 caracteres' : null,
+                        (v == null || v.length < 6) ? 'Mínimo de 6 caracteres' : null,
                   ),
                 ],
               ),
@@ -283,13 +283,13 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const TituloSecao('Carteira de habilitacao'),
+                  const TituloSecao('Carteira de habilitação'),
                   TextFormField(
                     controller: _cnhNumero,
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(labelText: 'Numero de registro *'),
+                    decoration: const InputDecoration(labelText: 'Número de registro *'),
                     validator: (v) => (v == null || v.trim().length < 9)
-                        ? 'Informe o numero da CNH'
+                        ? 'Informe o número da CNH'
                         : null,
                   ),
                   const SizedBox(height: 12),
@@ -298,7 +298,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                     decoration: const InputDecoration(labelText: 'Categoria *'),
                     items: const [
                       DropdownMenuItem(value: 'A', child: Text('A - moto')),
-                      DropdownMenuItem(value: 'B', child: Text('B - carro e utilitario')),
+                      DropdownMenuItem(value: 'B', child: Text('B - carro e utilitário')),
                       DropdownMenuItem(value: 'AB', child: Text('AB - moto e carro')),
                       DropdownMenuItem(value: 'C', child: Text('C - carga')),
                       DropdownMenuItem(value: 'D', child: Text('D - passageiros')),
@@ -331,7 +331,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'No prototipo o anexo e simulado. Na versao final, camera e galeria com upload para armazenamento com acesso restrito.',
+                    'No protótipo o anexo é simulado. Na versão final, câmera e galeria com upload para armazenamento com acesso restrito.',
                     style: TextStyle(fontSize: 12, color: Cores.textoFraco),
                   ),
                 ],
@@ -350,7 +350,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const TituloSecao('Categoria do veiculo'),
+                  const TituloSecao('Categoria do veículo'),
                   if (catalogo.isEmpty)
                     const Center(child: Padding(
                       padding: EdgeInsets.all(12),
@@ -379,7 +379,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                       ),
                       child: Text(
                         'Capacidade: ${_categoria!.pesoMaxKg} kg - '
-                        'Bau ${_categoria!.dimensoes}',
+                        'Baú ${_categoria!.dimensoes}',
                         style: const TextStyle(fontSize: 12.5, color: Cores.textoFraco),
                       ),
                     ),
@@ -392,7 +392,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const TituloSecao('Dados do veiculo'),
+                  const TituloSecao('Dados do veículo'),
                   TextFormField(
                     controller: _placa,
                     textCapitalization: TextCapitalization.characters,
@@ -439,7 +439,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                   ),
                   const SizedBox(height: 12),
                   AnexoSimulado(
-                    rotulo: 'Documento do veiculo (CRLV)',
+                    rotulo: 'Documento do veículo (CRLV)',
                     anexado: _crlvAnexado,
                     onTap: () => setState(() => _crlvAnexado = !_crlvAnexado),
                   ),
@@ -454,7 +454,7 @@ class _TelaCadastroMotoristaState extends State<TelaCadastroMotorista> {
                 contentPadding: EdgeInsets.zero,
                 controlAffinity: ListTileControlAffinity.leading,
                 title: const Text(
-                  'Declaro que os dados e documentos sao verdadeiros e aceito os termos de parceria do Solus Frete.',
+                  'Declaro que os dados e documentos são verdadeiros e aceito os termos de parceria do Solus Frete.',
                   style: TextStyle(fontSize: 13),
                 ),
               ),
