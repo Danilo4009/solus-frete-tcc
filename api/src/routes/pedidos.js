@@ -4,6 +4,7 @@ const { autenticar } = require('../auth');
 const { repasseParceiro } = require('../precificacao');
 const { erroHttp, rota } = require('../http');
 const { montarCotacao, respostaCotacao } = require('../ofertas');
+const { validarCarga, verificarCompatibilidade } = require('../compatibilidade');
 
 const router = express.Router();
 router.use(autenticar);
@@ -228,13 +229,17 @@ router.post('/', rota(async (req, res) => {
   const categoria = await one('SELECT * FROM categoria_veiculo WHERE id = ?', [categoriaId]);
   if (!categoria) throw erroHttp(404, 'Categoria nao encontrada');
 
-  const PESO_FAIXA = { ate_50: 50, ate_300: 300, de_300_a_750: 750, acima_750: 3500 };
-  const pesoEstimado = PESO_FAIXA[carga.faixaPeso] || 0;
-  if (pesoEstimado > categoria.peso_max_kg) {
+  // --- carga: campos validos e compativel com o veiculo (RN02) ---
+  const errosCarga = validarCarga(carga);
+  if (errosCarga.length) throw erroHttp(400, errosCarga[0]);
+
+  const compat = verificarCompatibilidade(carga, categoria);
+  if (!compat.compativel) {
     return res.status(422).json({
-      erro: 'Peso declarado acima da capacidade do veiculo',
+      erro: 'Carga incompativel com o veiculo escolhido',
+      motivo: compat.motivo,
       capacidadeKg: categoria.peso_max_kg,
-      sugestao: 'Selecione uma categoria maior',
+      sugestao: 'Escolha outro veiculo',
     });
   }
 
@@ -289,12 +294,11 @@ router.post('/', rota(async (req, res) => {
     }
 
     await conn.execute(
-      `INSERT INTO pedido_carga (pedido_id, tipo_item, volumes, faixa_peso,
-                                 instrucao_fragil, instrucao_nao_empilhar, instrucao_refrigerado, observacoes)
-       VALUES (?,?,?,?,?,?,?,?)`,
-      [id, carga.tipoItem || 'outros', carga.volumes || 1, carga.faixaPeso || 'ate_50',
-       carga.fragil ? 1 : 0, carga.naoEmpilhar ? 1 : 0, carga.refrigerado ? 1 : 0,
-       carga.observacoes || null]
+      `INSERT INTO pedido_carga (pedido_id, tipo_carga, volumes, peso_kg, comprimento_cm,
+                                 largura_cm, altura_cm, instrucao_nao_empilhar, observacoes)
+       VALUES (?,?,?,?,?,?,?,?,?)`,
+      [id, carga.tipoCarga, carga.volumes, carga.pesoKg, carga.comprimentoCm,
+       carga.larguraCm, carga.alturaCm, carga.naoEmpilhar ? 1 : 0, carga.observacoes || null]
     );
 
     for (const s of listaServicos) {

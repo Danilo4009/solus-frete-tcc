@@ -99,7 +99,8 @@ class Endereco {
 
   String get linhaSecundaria {
     final partes = <String>[];
-    if (complemento != null && complemento!.isNotEmpty) partes.add(complemento!);
+    if (complemento != null && complemento!.isNotEmpty)
+      partes.add(complemento!);
     if (referencia != null && referencia!.isNotEmpty) partes.add(referencia!);
     if (partes.isEmpty && bairro != null) partes.add(bairro!);
     partes.add(cidade);
@@ -197,6 +198,8 @@ class CategoriaVeiculo {
   final double larguraM;
   final double alturaM;
   final int pesoMaxKg;
+  final bool aceitaRefrigerada;
+  final bool aceitaPerigosa;
   final double? valorHora;
   final List<ServicoAdicional> servicos;
 
@@ -209,12 +212,28 @@ class CategoriaVeiculo {
     required this.larguraM,
     required this.alturaM,
     required this.pesoMaxKg,
+    this.aceitaRefrigerada = false,
+    this.aceitaPerigosa = false,
     this.valorHora,
     this.servicos = const [],
   });
 
   String get dimensoes =>
       '${comprimentoM.toStringAsFixed(1)} x ${larguraM.toStringAsFixed(1)} x ${alturaM.toStringAsFixed(1)} m';
+
+  double get volumeM3 => comprimentoM * larguraM * alturaM;
+
+  /// Refrigerada e perigosa so em veiculos habilitados; os demais tipos qualquer um aceita.
+  bool aceitaTipo(String tipoCarga) {
+    switch (tipoCarga) {
+      case 'refrigerada':
+        return aceitaRefrigerada;
+      case 'perigosa':
+        return aceitaPerigosa;
+      default:
+        return true;
+    }
+  }
 
   factory CategoriaVeiculo.doJson(Map<String, dynamic> j) => CategoriaVeiculo(
         id: j['id'] as int,
@@ -225,6 +244,8 @@ class CategoriaVeiculo {
         larguraM: (j['largura_m'] as num?)?.toDouble() ?? 0,
         alturaM: (j['altura_m'] as num?)?.toDouble() ?? 0,
         pesoMaxKg: (j['peso_max_kg'] as num).toInt(),
+        aceitaRefrigerada: (j['aceita_refrigerada'] ?? 0) == 1,
+        aceitaPerigosa: (j['aceita_perigosa'] ?? 0) == 1,
         valorHora: (j['valor_hora'] as num?)?.toDouble(),
         servicos: ((j['servicos'] as List?) ?? const [])
             .map((e) => ServicoAdicional.doJson(e as Map<String, dynamic>))
@@ -270,7 +291,8 @@ class OfertaParceiro {
 
   bool get ehMotorista => tipo == 'motorista';
 
-  String get rotuloTipo => ehMotorista ? 'Motorista parceiro' : 'Transportadora';
+  String get rotuloTipo =>
+      ehMotorista ? 'Motorista parceiro' : 'Transportadora';
 
   factory OfertaParceiro.doJson(Map<String, dynamic> j) => OfertaParceiro(
         chave: j['chave'] as String,
@@ -312,66 +334,73 @@ class Cotacao {
         ofertas: (j['ofertas'] as List)
             .map((e) => OfertaParceiro.doJson(e as Map<String, dynamic>))
             .toList(),
-        avisos: ((j['avisos'] as List?) ?? const []).map((e) => e as String).toList(),
-        cupomAplicado: j['cupom'] == null ? null : j['cupom']['codigo'] as String?,
+        avisos: ((j['avisos'] as List?) ?? const [])
+            .map((e) => e as String)
+            .toList(),
+        cupomAplicado:
+            j['cupom'] == null ? null : j['cupom']['codigo'] as String?,
       );
 }
 
+/// Detalhes da carga: peso total, dimensoes do maior volume e tipo.
+/// Dimensoes em centimetros e peso em kg; null = ainda nao informado.
 class Carga {
-  final String tipoItem;
+  static const tipos = [
+    'caixas_pacotes',
+    'paletizada',
+    'granel',
+    'fragil',
+    'refrigerada',
+    'perigosa',
+  ];
+
+  final String tipoCarga;
   final int volumes;
-  final String faixaPeso;
-  final bool fragil;
+  final double? pesoKg;
+  final double? comprimentoCm;
+  final double? larguraCm;
+  final double? alturaCm;
   final bool naoEmpilhar;
-  final bool refrigerado;
   final String? observacoes;
 
   const Carga({
-    this.tipoItem = 'outros',
+    this.tipoCarga = 'caixas_pacotes',
     this.volumes = 1,
-    this.faixaPeso = 'ate_50',
-    this.fragil = false,
+    this.pesoKg,
+    this.comprimentoCm,
+    this.larguraCm,
+    this.alturaCm,
     this.naoEmpilhar = false,
-    this.refrigerado = false,
     this.observacoes,
   });
 
-  Carga copiarCom({
-    String? tipoItem,
-    int? volumes,
-    String? faixaPeso,
-    bool? fragil,
-    bool? naoEmpilhar,
-    bool? refrigerado,
-    String? observacoes,
-  }) =>
-      Carga(
-        tipoItem: tipoItem ?? this.tipoItem,
-        volumes: volumes ?? this.volumes,
-        faixaPeso: faixaPeso ?? this.faixaPeso,
-        fragil: fragil ?? this.fragil,
-        naoEmpilhar: naoEmpilhar ?? this.naoEmpilhar,
-        refrigerado: refrigerado ?? this.refrigerado,
-        observacoes: observacoes ?? this.observacoes,
-      );
+  /// Peso e as tres dimensoes informados e maiores que zero.
+  bool get completa =>
+      (pesoKg ?? 0) > 0 &&
+      (comprimentoCm ?? 0) > 0 &&
+      (larguraCm ?? 0) > 0 &&
+      (alturaCm ?? 0) > 0 &&
+      volumes >= 1;
 
   factory Carga.doJson(Map<String, dynamic> j) => Carga(
-        tipoItem: (j['tipo_item'] ?? 'outros') as String,
+        tipoCarga: (j['tipo_carga'] ?? 'caixas_pacotes') as String,
         volumes: (j['volumes'] as num?)?.toInt() ?? 1,
-        faixaPeso: (j['faixa_peso'] ?? 'ate_50') as String,
-        fragil: (j['instrucao_fragil'] ?? 0) == 1,
+        pesoKg: (j['peso_kg'] as num?)?.toDouble(),
+        comprimentoCm: (j['comprimento_cm'] as num?)?.toDouble(),
+        larguraCm: (j['largura_cm'] as num?)?.toDouble(),
+        alturaCm: (j['altura_cm'] as num?)?.toDouble(),
         naoEmpilhar: (j['instrucao_nao_empilhar'] ?? 0) == 1,
-        refrigerado: (j['instrucao_refrigerado'] ?? 0) == 1,
         observacoes: j['observacoes'] as String?,
       );
 
   Map<String, dynamic> paraJson() => {
-        'tipoItem': tipoItem,
+        'tipoCarga': tipoCarga,
         'volumes': volumes,
-        'faixaPeso': faixaPeso,
-        'fragil': fragil,
+        'pesoKg': pesoKg,
+        'comprimentoCm': comprimentoCm,
+        'larguraCm': larguraCm,
+        'alturaCm': alturaCm,
         'naoEmpilhar': naoEmpilhar,
-        'refrigerado': refrigerado,
         'observacoes': observacoes,
       };
 }
@@ -442,6 +471,16 @@ class Pedido {
   final List<ServicoAdicional> servicos;
   final List<EventoPedido> eventos;
 
+  /// Endereco de coleta/entrega ja resumido (rua e numero), como a listagem de
+  /// pedidos devolve. Usado quando [paradas] ainda nao foi carregado (so o
+  /// detalhe de um pedido traz as paradas completas).
+  final String? origemResumo;
+  final String? destinoResumo;
+
+  /// Quantidade total de paradas (coleta + entregas). null quando a listagem
+  /// nao informou (ex.: dados vindos do mock).
+  final int? totalParadas;
+
   const Pedido({
     required this.id,
     required this.codigo,
@@ -468,6 +507,9 @@ class Pedido {
     this.carga,
     this.servicos = const [],
     this.eventos = const [],
+    this.origemResumo,
+    this.destinoResumo,
+    this.totalParadas,
   });
 
   Endereco? get origem {
@@ -485,14 +527,27 @@ class Pedido {
     return ultimo;
   }
 
+  /// Para exibir em listas: usa o endereco completo quando as paradas foram
+  /// carregadas (tela de detalhe) e cai para o resumo da listagem quando nao.
+  String get origemExibicao => origem?.linhaPrincipal ?? origemResumo ?? '-';
+  String get destinoExibicao => destino?.linhaPrincipal ?? destinoResumo ?? '-';
+
+  /// Quantas entregas alem da primeira (coleta + 1a entrega ja aparecem na lista).
+  int get entregasExtras {
+    final total = totalParadas ?? paradas.length;
+    return total > 2 ? total - 2 : 0;
+  }
+
   bool get emAndamento => !['concluido', 'cancelado'].contains(situacao);
 
   /// Parceiro do pedido: o motorista autonomo ou a transportadora escolhida.
   String? get parceiroNome => motoristaNome ?? transportadoraNome;
 
-  double? get parceiroAvaliacao => motoristaAvaliacao ?? transportadoraAvaliacao;
+  double? get parceiroAvaliacao =>
+      motoristaAvaliacao ?? transportadoraAvaliacao;
 
-  bool get ehTransportadora => motoristaNome == null && transportadoraNome != null;
+  bool get ehTransportadora =>
+      motoristaNome == null && transportadoraNome != null;
 
   bool get aguardandoAceite => situacao == 'aguardando_alocacao';
 
@@ -529,15 +584,19 @@ class Pedido {
         valorTotal: valorTotal ?? this.valorTotal,
         formaPagamento: formaPagamento,
         pagador: pagador,
-        motoristaNome: limparParceiro ? null : (motoristaNome ?? this.motoristaNome),
-        motoristaAvaliacao:
-            limparParceiro ? null : (motoristaAvaliacao ?? this.motoristaAvaliacao),
-        transportadoraNome:
-            limparParceiro ? null : (transportadoraNome ?? this.transportadoraNome),
+        motoristaNome:
+            limparParceiro ? null : (motoristaNome ?? this.motoristaNome),
+        motoristaAvaliacao: limparParceiro
+            ? null
+            : (motoristaAvaliacao ?? this.motoristaAvaliacao),
+        transportadoraNome: limparParceiro
+            ? null
+            : (transportadoraNome ?? this.transportadoraNome),
         transportadoraAvaliacao: limparParceiro
             ? null
             : (transportadoraAvaliacao ?? this.transportadoraAvaliacao),
-        veiculoPlaca: limparParceiro ? null : (veiculoPlaca ?? this.veiculoPlaca),
+        veiculoPlaca:
+            limparParceiro ? null : (veiculoPlaca ?? this.veiculoPlaca),
         observacaoMotorista: observacaoMotorista,
         criadoEm: criadoEm,
         paradas: paradas ?? this.paradas,
@@ -554,7 +613,8 @@ class Pedido {
         tipoRetirada: (j['tipo_retirada'] ?? 'imediata') as String,
         agendadoPara: j['agendado_para'] == null
             ? null
-            : DateTime.tryParse((j['agendado_para'] as String).replaceFirst(' ', 'T')),
+            : DateTime.tryParse(
+                (j['agendado_para'] as String).replaceFirst(' ', 'T')),
         categoriaNome: (j['categoria_nome'] ?? '') as String,
         distanciaKm: (j['distancia_km'] as num?)?.toDouble() ?? 0,
         valorFrete: (j['valor_frete'] as num?)?.toDouble() ?? 0,
@@ -566,7 +626,8 @@ class Pedido {
         motoristaNome: j['motorista_nome'] as String?,
         motoristaAvaliacao: (j['motorista_avaliacao'] as num?)?.toDouble(),
         transportadoraNome: j['transportadora_nome'] as String?,
-        transportadoraAvaliacao: (j['transportadora_avaliacao'] as num?)?.toDouble(),
+        transportadoraAvaliacao:
+            (j['transportadora_avaliacao'] as num?)?.toDouble(),
         veiculoPlaca: j['veiculo_placa'] as String?,
         observacaoMotorista: j['observacao_motorista'] as String?,
         criadoEm: DateTime.tryParse(
@@ -584,6 +645,9 @@ class Pedido {
         eventos: ((j['eventos'] as List?) ?? const [])
             .map((e) => EventoPedido.doJson(e as Map<String, dynamic>))
             .toList(),
+        origemResumo: j['origem'] as String?,
+        destinoResumo: j['destino'] as String?,
+        totalParadas: (j['total_paradas'] as num?)?.toInt(),
       );
 }
 
@@ -641,7 +705,8 @@ class Notificacao {
         lida: (j['lida'] ?? 0) == 1,
         quando: j['criada_em'] == null
             ? null
-            : DateTime.tryParse((j['criada_em'] as String).replaceFirst(' ', 'T')),
+            : DateTime.tryParse(
+                (j['criada_em'] as String).replaceFirst(' ', 'T')),
       );
 }
 
@@ -671,6 +736,7 @@ class TransacaoCarteira {
         descricao: j['descricao'] as String?,
         quando: j['criada_em'] == null
             ? null
-            : DateTime.tryParse((j['criada_em'] as String).replaceFirst(' ', 'T')),
+            : DateTime.tryParse(
+                (j['criada_em'] as String).replaceFirst(' ', 'T')),
       );
 }

@@ -7,15 +7,19 @@ USE solus_frete;
 -- ---------------------------------------------------------------------
 -- Categorias de veiculo
 -- ---------------------------------------------------------------------
-INSERT INTO categoria_veiculo (codigo, nome, descricao, comprimento_m, largura_m, altura_m, peso_max_kg, ordem) VALUES
-('moto',       'Moto',              'Documentos e encomendas pequenas.',                    0.40, 0.35, 0.30,    20, 1),
-('carro_hatch','Carro Hatch',       'Caixas pequenas e compras do dia.',                    1.00, 0.80, 0.60,   150, 2),
-('carro',      'Carro',             'Volumes medios que caibam no porta-malas e bancos.',   1.20, 0.90, 0.70,   200, 3),
-('utilitario', 'Utilitario/Pick-Up','Cargas medias, obra leve e equipamentos.',             1.80, 1.40, 1.00,   700, 4),
-('van',        'Van',               'Volume alto protegido da chuva.',                      2.40, 1.50, 1.40,  1000, 5),
-('carreto',    'Carreto',           'Ideal para mudancas ou materiais grandes e pesados.',  3.00, 1.80, 2.00,  1500, 6),
-('caminhao_35','Caminhao 3/4',      'Cargas paletizadas e mudancas completas.',             4.50, 2.10, 2.20,  3500, 7),
-('caminhao_75','Caminhao Toco',     'Carga fechada e transferencias entre cidades.',        6.00, 2.40, 2.50,  7500, 8);
+-- Estas especificacoes espelham app/lib/core/veiculos_config.dart (o teste
+-- app/test/veiculos_config_test.dart confere que os dois continuam iguais).
+-- Colunas: codigo, nome, descricao, c, l, a (m), peso max (kg), ordem, refrigerada, perigosa.
+INSERT INTO categoria_veiculo (codigo, nome, descricao, comprimento_m, largura_m, altura_m, peso_max_kg, ordem, aceita_refrigerada, aceita_perigosa) VALUES
+('moto',          'Moto',           'Documentos e encomendas pequenas.',                                0.40, 0.35, 0.30,    20, 1, 0, 0),
+('carro',         'Carro',          'Volumes medios que caibam no porta-malas e bancos.',               1.20, 0.90, 0.70,   200, 2, 0, 0),
+('utilitario',    'Utilitario',     'Cargas pequenas e medias, como um Fiorino: caixas e equipamentos.', 1.90, 1.30, 1.20,   650, 3, 0, 0),
+('van',           'Van',            'Volume alto protegido da chuva.',                                  3.00, 1.70, 1.80,  1500, 4, 0, 0),
+('vuc',           'VUC',            'Veiculo urbano de carga: entregas grandes dentro da cidade.',      4.50, 2.10, 2.20,  3000, 5, 1, 0),
+('caminhao_34',   'Caminhao 3/4',   'Cargas paletizadas e mudancas completas.',                         5.50, 2.30, 2.40,  4000, 6, 1, 0),
+('caminhao_toco', 'Caminhao toco',  'Carga fechada e transferencias entre cidades.',                    7.00, 2.40, 2.60,  6000, 7, 1, 1),
+('caminhao_truck','Caminhao truck', 'Grandes volumes e cargas pesadas.',                                8.50, 2.40, 2.70, 12000, 8, 1, 1),
+('carreta',       'Carreta',        'Cargas muito grandes e transferencias de longa distancia.',       14.00, 2.50, 2.80, 25000, 9, 1, 1);
 
 -- ---------------------------------------------------------------------
 -- Servicos adicionais
@@ -34,9 +38,9 @@ SELECT c.id, s.id FROM categoria_veiculo c JOIN servico_adicional s
 WHERE (s.codigo = 'tempo_espera')
    OR (s.codigo = 'coleta_agendada')
    OR (s.codigo = 'embalagem' AND c.codigo <> 'moto')
-   OR (s.codigo = 'ajuda_motorista' AND c.codigo IN ('utilitario','van','carreto','caminhao_35','caminhao_75'))
-   OR (s.codigo = 'ajudante_extra' AND c.codigo IN ('van','carreto','caminhao_35','caminhao_75'))
-   OR (s.codigo = 'mudanca_completa' AND c.codigo IN ('carreto','caminhao_35','caminhao_75'));
+   OR (s.codigo = 'ajuda_motorista' AND c.codigo IN ('utilitario','van','vuc','caminhao_34','caminhao_toco','caminhao_truck','carreta'))
+   OR (s.codigo = 'ajudante_extra' AND c.codigo IN ('van','vuc','caminhao_34','caminhao_toco','caminhao_truck','carreta'))
+   OR (s.codigo = 'mudanca_completa' AND c.codigo IN ('vuc','caminhao_34','caminhao_toco','caminhao_truck'));
 
 -- ---------------------------------------------------------------------
 -- Tabela de preco - Sao Paulo/SP
@@ -54,23 +58,30 @@ SELECT 'Sao Paulo','SP', c.id, n.nivel,
        '2026-01-01'
 FROM (
   SELECT id, codigo,
+         -- Sem ELSE de proposito: categoria nova sem preco falha no NOT NULL em vez de
+         -- herdar o preco de outra. Valores de vuc, caminhao_truck e carreta sao de prototipo.
          CASE codigo
-           WHEN 'moto' THEN 8.00  WHEN 'carro_hatch' THEN 14.00 WHEN 'carro' THEN 16.00
-           WHEN 'utilitario' THEN 28.00 WHEN 'van' THEN 38.00 WHEN 'carreto' THEN 52.00
-           WHEN 'caminhao_35' THEN 90.00 ELSE 140.00 END AS base,
+           WHEN 'moto' THEN 8.00 WHEN 'carro' THEN 16.00 WHEN 'utilitario' THEN 28.00
+           WHEN 'van' THEN 38.00 WHEN 'vuc' THEN 65.00 WHEN 'caminhao_34' THEN 90.00
+           WHEN 'caminhao_toco' THEN 140.00 WHEN 'caminhao_truck' THEN 190.00
+           WHEN 'carreta' THEN 320.00 END AS base,
          CASE codigo
-           WHEN 'moto' THEN 1.90  WHEN 'carro_hatch' THEN 2.40 WHEN 'carro' THEN 2.70
-           WHEN 'utilitario' THEN 3.60 WHEN 'van' THEN 4.30 WHEN 'carreto' THEN 5.20
-           WHEN 'caminhao_35' THEN 7.40 ELSE 9.80 END AS km,
-         CASE codigo WHEN 'moto' THEN 4.00 WHEN 'carro_hatch' THEN 6.00 WHEN 'carro' THEN 6.00
+           WHEN 'moto' THEN 1.90 WHEN 'carro' THEN 2.70 WHEN 'utilitario' THEN 3.60
+           WHEN 'van' THEN 4.30 WHEN 'vuc' THEN 5.80 WHEN 'caminhao_34' THEN 7.40
+           WHEN 'caminhao_toco' THEN 9.80 WHEN 'caminhao_truck' THEN 12.50
+           WHEN 'carreta' THEN 18.00 END AS km,
+         CASE codigo WHEN 'moto' THEN 4.00 WHEN 'carro' THEN 6.00
            ELSE 10.00 END AS parada,
          CASE codigo
-           WHEN 'moto' THEN 38.00 WHEN 'carro_hatch' THEN 52.00 WHEN 'carro' THEN 58.00
-           WHEN 'utilitario' THEN 78.00 WHEN 'van' THEN 92.00 WHEN 'carreto' THEN 110.00
-           WHEN 'caminhao_35' THEN 160.00 ELSE 220.00 END AS hora,
-         CASE codigo WHEN 'moto' THEN 14.00 WHEN 'carro_hatch' THEN 22.00 WHEN 'carro' THEN 26.00
-           WHEN 'utilitario' THEN 45.00 WHEN 'van' THEN 62.00 WHEN 'carreto' THEN 85.00
-           WHEN 'caminhao_35' THEN 140.00 ELSE 210.00 END AS minimo
+           WHEN 'moto' THEN 38.00 WHEN 'carro' THEN 58.00 WHEN 'utilitario' THEN 78.00
+           WHEN 'van' THEN 92.00 WHEN 'vuc' THEN 125.00 WHEN 'caminhao_34' THEN 160.00
+           WHEN 'caminhao_toco' THEN 220.00 WHEN 'caminhao_truck' THEN 290.00
+           WHEN 'carreta' THEN 480.00 END AS hora,
+         CASE codigo
+           WHEN 'moto' THEN 14.00 WHEN 'carro' THEN 26.00 WHEN 'utilitario' THEN 45.00
+           WHEN 'van' THEN 62.00 WHEN 'vuc' THEN 105.00 WHEN 'caminhao_34' THEN 140.00
+           WHEN 'caminhao_toco' THEN 210.00 WHEN 'caminhao_truck' THEN 280.00
+           WHEN 'carreta' THEN 480.00 END AS minimo
   FROM categoria_veiculo
 ) c
 CROSS JOIN (
@@ -134,9 +145,9 @@ SET @m2 = (SELECT id FROM motorista WHERE cpf='222.333.444-55');
 SET @m3 = (SELECT id FROM motorista WHERE cpf='333.444.555-66');
 
 INSERT INTO veiculo (motorista_id, transportadora_id, categoria_id, placa, marca, modelo, ano, documento_validade, situacao_homologacao) VALUES
-(@m1, NULL, (SELECT id FROM categoria_veiculo WHERE codigo='carreto'),    'ABC1D23', 'Mercedes','Sprinter Chassi', 2020, '2027-03-01','aprovada'),
+(@m1, NULL, (SELECT id FROM categoria_veiculo WHERE codigo='van'),        'ABC1D23', 'Mercedes','Sprinter',        2020, '2027-03-01','aprovada'),
 (@m2, NULL, (SELECT id FROM categoria_veiculo WHERE codigo='moto'),       'XYZ9K88', 'Honda',   'CG 160 Cargo',    2022, '2027-08-10','aprovada'),
-(@m3, @emp_tr,(SELECT id FROM categoria_veiculo WHERE codigo='caminhao_35'),'TRL4A55','Volkswagen','Delivery 9.170',2021,'2027-12-20','aprovada');
+(@m3, @emp_tr,(SELECT id FROM categoria_veiculo WHERE codigo='caminhao_34'),'TRL4A55','Volkswagen','Delivery 9.170',2021,'2027-12-20','aprovada');
 
 -- Motorista favorito do cliente PF
 INSERT INTO motorista_favorito (cliente_id, motorista_id, origem) VALUES (@cli_pf, @m1, 'pos_pedido');
@@ -167,7 +178,7 @@ INSERT INTO transacao_carteira (carteira_id, tipo, valor, descricao) VALUES
 -- ---------------------------------------------------------------------
 INSERT INTO cupom (codigo, descricao, tipo_desconto, valor, valor_minimo_pedido, usos_por_cliente, valido_ate) VALUES
 ('SOLUS10',   'R$ 10 de desconto no primeiro frete', 'valor',      10.00,  40.00, 1, '2026-12-31'),
-('MUDANCA15', '15% off em carreto e caminhao',       'percentual', 15.00, 150.00, 2, '2026-12-31');
+('MUDANCA15', '15% off em fretes de van e caminhao', 'percentual', 15.00, 150.00, 2, '2026-12-31');
 
 -- ---------------------------------------------------------------------
 -- Pedidos de demonstracao
@@ -186,8 +197,8 @@ SET @p1 = (SELECT id FROM pedido WHERE codigo='SF-000001');
 INSERT INTO pedido_parada (pedido_id, sequencia, tipo, logradouro, numero, cidade, uf, latitude, longitude, situacao, concluida_em) VALUES
 (@p1,1,'coleta', 'Rua Salvador Nunes','120','Osasco','SP',-23.5320,-46.7920,'concluida','2026-09-10 14:20:00'),
 (@p1,2,'entrega','Rua Pastoril de Nanuque','196','Sao Paulo','SP',-23.5170,-46.4780,'concluida','2026-09-10 14:52:00');
-INSERT INTO pedido_carga (pedido_id, tipo_item, volumes, faixa_peso, observacoes) VALUES
-(@p1,'outros',1,'ate_50','Envelope com contratos');
+INSERT INTO pedido_carga (pedido_id, tipo_carga, volumes, peso_kg, comprimento_cm, largura_cm, altura_cm, observacoes) VALUES
+(@p1,'caixas_pacotes',1,0.50,30,22,3,'Envelope com contratos');
 INSERT INTO avaliacao (pedido_id, autor_id, avaliado_id, nota, comentario) VALUES
 (@p1, @cli_pf, @mot2, 5, 'Rapido e cuidadoso.');
 INSERT INTO pedido_evento (pedido_id, situacao, descricao) VALUES
@@ -199,7 +210,7 @@ INSERT INTO pedido (codigo, cliente_id, categoria_id, nivel_servico, tipo_retira
                     distancia_km, valor_frete, valor_adicionais, valor_total,
                     forma_pagamento, pagador, favoritos_primeiro, contato_telefone, motorista_id, veiculo_id,
                     aceite_itens_proibidos, criado_em)
-VALUES ('SF-000002', @cli_pf, (SELECT id FROM categoria_veiculo WHERE codigo='carreto'),
+VALUES ('SF-000002', @cli_pf, (SELECT id FROM categoria_veiculo WHERE codigo='van'),
         'padrao','imediata','em_transito', 18.60, 148.72, 70.00, 218.72,
         'pix','remetente',1,'11940135904', @m1, (SELECT id FROM veiculo WHERE placa='ABC1D23'),
         1,'2026-09-17 16:30:00');
@@ -208,8 +219,8 @@ SET @p2 = (SELECT id FROM pedido WHERE codigo='SF-000002');
 INSERT INTO pedido_parada (pedido_id, sequencia, tipo, logradouro, numero, complemento, cidade, uf, latitude, longitude, contato_nome, contato_telefone, situacao, concluida_em) VALUES
 (@p2,1,'coleta', 'Rua Salvador Nunes','120','Casa 2','Osasco','SP',-23.5320,-46.7920,'Danilo','11940135904','concluida','2026-09-17 17:05:00'),
 (@p2,2,'entrega','Avenida Paulista','1159','9o andar','Sao Paulo','SP',-23.5660,-46.6520,'Recepcao','1133334444','pendente',NULL);
-INSERT INTO pedido_carga (pedido_id, tipo_item, volumes, faixa_peso, instrucao_fragil, observacoes) VALUES
-(@p2,'moveis_eletrodomesticos',4,'de_300_a_750',1,'Uma mesa de vidro, favor nao empilhar');
+INSERT INTO pedido_carga (pedido_id, tipo_carga, volumes, peso_kg, comprimento_cm, largura_cm, altura_cm, instrucao_nao_empilhar, observacoes) VALUES
+(@p2,'fragil',4,320.00,180,90,75,1,'Uma mesa de vidro, favor nao empilhar');
 INSERT INTO pedido_servico (pedido_id, servico_id, preco) VALUES
 (@p2,(SELECT id FROM servico_adicional WHERE codigo='ajuda_motorista'),70.00);
 INSERT INTO pedido_evento (pedido_id, situacao, descricao) VALUES
@@ -221,7 +232,7 @@ INSERT INTO pedido_evento (pedido_id, situacao, descricao) VALUES
 INSERT INTO pedido (codigo, cliente_id, empresa_id, categoria_id, nivel_servico, tipo_retirada, agendado_para,
                     situacao, distancia_km, valor_frete, valor_adicionais, valor_total,
                     forma_pagamento, pagador, contato_telefone, aceite_itens_proibidos, criado_em)
-VALUES ('SF-000003', @cli_pj, @emp_pj, (SELECT id FROM categoria_veiculo WHERE codigo='caminhao_35'),
+VALUES ('SF-000003', @cli_pj, @emp_pj, (SELECT id FROM categoria_veiculo WHERE codigo='caminhao_34'),
         'padrao','agendada','2026-09-19 08:00:00','aguardando_alocacao', 24.30, 269.82, 190.00, 459.82,
         'carteira','remetente','11988887777',1,'2026-09-17 10:00:00');
 
@@ -230,8 +241,8 @@ INSERT INTO pedido_parada (pedido_id, sequencia, tipo, logradouro, numero, cidad
 (@p3,1,'coleta', 'Rua Cabo Diogo Oliveira','45','Sao Paulo','SP',-23.5290,-46.7360,'Estoque','1133224455'),
 (@p3,2,'entrega','Rua 25 de Marco','800','Sao Paulo','SP',-23.5430,-46.6330,'Marina','11988887777'),
 (@p3,3,'entrega','Avenida Paulista','1159','Sao Paulo','SP',-23.5660,-46.6520,'Recepcao','1133334444');
-INSERT INTO pedido_carga (pedido_id, tipo_item, volumes, faixa_peso, observacoes) VALUES
-(@p3,'moveis_eletrodomesticos',12,'acima_750','Reposicao de estoque das lojas');
+INSERT INTO pedido_carga (pedido_id, tipo_carga, volumes, peso_kg, comprimento_cm, largura_cm, altura_cm, observacoes) VALUES
+(@p3,'paletizada',12,2600.00,120,100,150,'Reposicao de estoque das lojas');
 INSERT INTO pedido_servico (pedido_id, servico_id, preco) VALUES
 (@p3,(SELECT id FROM servico_adicional WHERE codigo='mudanca_completa'),190.00);
 INSERT INTO oferta (pedido_id, transportadora_id, rodada, situacao, valor_repasse) VALUES
@@ -251,8 +262,8 @@ SET @p4 = (SELECT id FROM pedido WHERE codigo='SF-000004');
 INSERT INTO pedido_parada (pedido_id, sequencia, tipo, logradouro, numero, cidade, uf, latitude, longitude) VALUES
 (@p4,1,'coleta', 'Rua Salvador Nunes','120','Osasco','SP',-23.5320,-46.7920),
 (@p4,2,'entrega','Rua 25 de Marco','800','Sao Paulo','SP',-23.5430,-46.6330);
-INSERT INTO pedido_carga (pedido_id, tipo_item, volumes, faixa_peso) VALUES
-(@p4,'material_construcao',6,'ate_300');
+INSERT INTO pedido_carga (pedido_id, tipo_carga, volumes, peso_kg, comprimento_cm, largura_cm, altura_cm, observacoes) VALUES
+(@p4,'caixas_pacotes',6,220.00,60,50,40,'Material de construcao');
 
 -- ---------------------------------------------------------------------
 -- Notificacoes
@@ -275,13 +286,14 @@ CREATE TEMPORARY TABLE tmp_modelo (
   codigo VARCHAR(40) PRIMARY KEY, marca VARCHAR(60), modelo VARCHAR(60), cnh CHAR(1));
 INSERT INTO tmp_modelo VALUES
 ('moto','Honda','CG 160 Cargo','A'),
-('carro_hatch','Fiat','Argo','B'),
 ('carro','Chevrolet','Onix Plus','B'),
-('utilitario','Fiat','Strada','B'),
+('utilitario','Fiat','Fiorino','B'),
 ('van','Renault','Master','B'),
-('carreto','Mercedes','Sprinter Chassi','C'),
-('caminhao_35','Volkswagen','Delivery 9.170','C'),
-('caminhao_75','Mercedes','Accelo 1016','C');
+('vuc','Volkswagen','Delivery Express','C'),
+('caminhao_34','Volkswagen','Delivery 9.170','C'),
+('caminhao_toco','Mercedes','Accelo 1016','C'),
+('caminhao_truck','Volkswagen','Constellation 24.280','C'),
+('carreta','Scania','R 450 com carreta','E');
 
 -- motoristas autonomos: usuario, motorista e veiculo
 INSERT INTO usuario (tipo, nome, sobrenome, telefone, telefone_verificado, email, senha_hash)
@@ -373,7 +385,7 @@ SELECT @emp_tr, tp.categoria_id, tp.tarifa_base, tp.valor_por_km, tp.valor_por_p
        tp.valor_hora, tp.valor_minimo
   FROM tabela_preco tp
   JOIN categoria_veiculo c ON c.id = tp.categoria_id
- WHERE tp.cidade = 'Sao Paulo' AND tp.nivel_servico = 'padrao' AND c.codigo = 'caminhao_35';
+ WHERE tp.cidade = 'Sao Paulo' AND tp.nivel_servico = 'padrao' AND c.codigo = 'caminhao_34';
 
 DROP TEMPORARY TABLE tmp_transp;
 DROP TEMPORARY TABLE tmp_modelo;

@@ -40,7 +40,7 @@ router.post('/', async (req, res) => {
   } = req.body || {};
 
   if (!logradouro || !cidade || !uf) {
-    return res.status(400).json({ erro: 'Logradouro, cidade e UF sao obrigatorios' });
+    return res.status(400).json({ erro: 'Logradouro, cidade e UF são obrigatórios' });
   }
 
   const rows = await query(

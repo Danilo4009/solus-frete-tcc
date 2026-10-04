@@ -14,7 +14,7 @@ router.post('/login', async (req, res) => {
     'SELECT id, tipo, nome, sobrenome, telefone, email, senha_hash, situacao FROM usuario WHERE telefone = ?',
     [String(telefone).replace(/\D/g, '')]
   );
-  if (!usuario) return res.status(401).json({ erro: 'Usuario nao encontrado' });
+  if (!usuario) return res.status(401).json({ erro: 'Usuário não encontrado' });
   if (usuario.situacao !== 'ativo') return res.status(403).json({ erro: 'Conta inativa' });
 
   const ok = usuario.senha_hash ? await bcrypt.compare(senha, usuario.senha_hash) : false;
@@ -28,11 +28,11 @@ router.post('/login', async (req, res) => {
 router.post('/registro/cliente', async (req, res) => {
   const { nome, sobrenome, telefone, email, senha, setor } = req.body || {};
   if (!nome || !telefone || !senha) {
-    return res.status(400).json({ erro: 'Nome, telefone e senha sao obrigatorios' });
+    return res.status(400).json({ erro: 'Nome, telefone e senha são obrigatórios' });
   }
   const tel = String(telefone).replace(/\D/g, '');
   const existe = await one('SELECT id FROM usuario WHERE telefone = ?', [tel]);
-  if (existe) return res.status(409).json({ erro: 'Telefone ja cadastrado' });
+  if (existe) return res.status(409).json({ erro: 'Telefone já cadastrado' });
 
   const hash = await bcrypt.hash(senha, 10);
   const usuario = await transacao(async (conn) => {
@@ -57,18 +57,18 @@ router.post('/registro/motorista', async (req, res) => {
   } = req.body || {};
 
   if (!nome || !telefone || !senha || !cpf || !cnhNumero || !cnhValidade) {
-    return res.status(400).json({ erro: 'Dados obrigatorios do motorista incompletos' });
+    return res.status(400).json({ erro: 'Dados obrigatórios do motorista incompletos' });
   }
   if (!veiculo || !veiculo.categoriaCodigo || !veiculo.placa) {
-    return res.status(400).json({ erro: 'Informe a categoria e a placa do veiculo' });
+    return res.status(400).json({ erro: 'Informe a categoria e a placa do veículo' });
   }
 
   const tel = String(telefone).replace(/\D/g, '');
   if (await one('SELECT id FROM usuario WHERE telefone = ?', [tel])) {
-    return res.status(409).json({ erro: 'Telefone ja cadastrado' });
+    return res.status(409).json({ erro: 'Telefone já cadastrado' });
   }
   const categoria = await one('SELECT id FROM categoria_veiculo WHERE codigo = ?', [veiculo.categoriaCodigo]);
-  if (!categoria) return res.status(400).json({ erro: 'Categoria de veiculo invalida' });
+  if (!categoria) return res.status(400).json({ erro: 'Categoria de veículo inválida' });
 
   const hash = await bcrypt.hash(senha, 10);
   const resultado = await transacao(async (conn) => {
@@ -91,8 +91,8 @@ router.post('/registro/motorista', async (req, res) => {
     );
     await conn.execute(
       `INSERT INTO notificacao (usuario_id, categoria, titulo, mensagem)
-       VALUES (?, 'operacional', 'Cadastro em analise',
-               'Recebemos seus documentos. Assim que a homologacao for concluida voce comeca a receber ofertas.')`,
+       VALUES (?, 'operacional', 'Cadastro em análise',
+               'Recebemos seus documentos. Assim que a homologação for concluída você começa a receber ofertas.')`,
       [u.insertId]
     );
     return { usuarioId: u.insertId, motoristaId: m.insertId };
@@ -101,7 +101,7 @@ router.post('/registro/motorista', async (req, res) => {
   res.status(201).json({
     ...resultado,
     situacao: 'pendente',
-    mensagem: 'Cadastro enviado para homologacao da operacao Solus.',
+    mensagem: 'Cadastro enviado para homologação da operação Solus.',
   });
 });
 
@@ -114,14 +114,14 @@ router.post('/registro/transportadora', async (req, res) => {
   } = req.body || {};
 
   if (!cnpj || !razaoSocial || !responsavel || !responsavel.nome || !responsavel.telefone || !responsavel.senha) {
-    return res.status(400).json({ erro: 'Dados obrigatorios da transportadora incompletos' });
+    return res.status(400).json({ erro: 'Dados obrigatórios da transportadora incompletos' });
   }
   if (await one('SELECT id FROM empresa WHERE cnpj = ?', [cnpj])) {
-    return res.status(409).json({ erro: 'CNPJ ja cadastrado' });
+    return res.status(409).json({ erro: 'CNPJ já cadastrado' });
   }
   const tel = String(responsavel.telefone).replace(/\D/g, '');
   if (await one('SELECT id FROM usuario WHERE telefone = ?', [tel])) {
-    return res.status(409).json({ erro: 'Telefone do responsavel ja cadastrado' });
+    return res.status(409).json({ erro: 'Telefone do responsável já cadastrado' });
   }
 
   const hash = await bcrypt.hash(responsavel.senha, 10);
@@ -146,7 +146,7 @@ router.post('/registro/transportadora', async (req, res) => {
   res.status(201).json({
     ...resultado,
     situacao: 'pendente',
-    mensagem: 'Transportadora enviada para homologacao. Voce podera cadastrar a frota apos a aprovacao.',
+    mensagem: 'Transportadora enviada para homologação. Você poderá cadastrar a frota após a aprovação.',
   });
 });
 

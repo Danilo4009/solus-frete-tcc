@@ -45,9 +45,9 @@ router.get('/carteira', async (req, res) => {
 // POST /perfil/carteira/recarga
 router.post('/carteira/recarga', async (req, res) => {
   const valor = Number(req.body?.valor || 0);
-  if (valor <= 0) return res.status(400).json({ erro: 'Valor invalido' });
+  if (valor <= 0) return res.status(400).json({ erro: 'Valor inválido' });
   const carteira = await one('SELECT * FROM carteira WHERE usuario_id = ?', [req.usuario.id]);
-  if (!carteira) return res.status(404).json({ erro: 'Carteira nao encontrada' });
+  if (!carteira) return res.status(404).json({ erro: 'Carteira não encontrada' });
   await query('UPDATE carteira SET saldo = saldo + ? WHERE id = ?', [valor, carteira.id]);
   await query(
     'INSERT INTO transacao_carteira (carteira_id, tipo, valor, descricao) VALUES (?,"recarga",?,?)',
@@ -87,7 +87,7 @@ router.post('/favoritos/convite', async (req, res) => {
     await query(
       'INSERT IGNORE INTO motorista_favorito (cliente_id, motorista_id, origem) VALUES (?,?,"convite")',
       [req.usuario.id, existente.id]);
-    return res.json({ vinculado: true, mensagem: 'Motorista ja e parceiro Solus e foi adicionado aos seus favoritos.' });
+    return res.json({ vinculado: true, mensagem: 'Motorista já é parceiro Solus e foi adicionado aos seus favoritos.' });
   }
 
   await query('INSERT INTO convite_motorista (cliente_id, telefone, nome) VALUES (?,?,?)',

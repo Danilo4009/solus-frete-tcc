@@ -1,216 +1,303 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../core/ajuda_pedido.dart';
 import '../core/formato.dart';
 import '../core/tema.dart';
+import '../core/widgets/ajuda.dart';
 import '../core/widgets/comuns.dart';
+import '../core/widgets/progresso_pedido.dart';
 import '../estado/novo_pedido.dart';
 import '../modelos/modelos.dart';
+import 'opcoes_frete.dart';
 
-/// Tipo de item, volumes, faixa de peso e instrucoes de manuseio.
+/// Peso, dimensoes do maior volume, quantidade de volumes, tipo e observacoes da carga.
+/// No fluxo do pedido vem antes da escolha do veiculo ([etapaDoFluxo]); cada alteracao
+/// atualiza o rascunho na hora, e a lista de veiculos da proxima etapa reage.
 class TelaDetalhesCarga extends StatefulWidget {
-  const TelaDetalhesCarga({super.key});
+  const TelaDetalhesCarga({super.key, this.etapaDoFluxo = false});
+
+  final bool etapaDoFluxo;
 
   @override
   State<TelaDetalhesCarga> createState() => _TelaDetalhesCargaState();
 }
 
 class _TelaDetalhesCargaState extends State<TelaDetalhesCarga> {
-  late Carga _carga;
+  late final TextEditingController _peso;
+  late final TextEditingController _comprimento;
+  late final TextEditingController _largura;
+  late final TextEditingController _altura;
   late final TextEditingController _observacoes;
   late final TextEditingController _notaMotorista;
-
-  static const _tipos = [
-    'alimentos',
-    'material_construcao',
-    'roupas_pessoais',
-    'moveis_eletrodomesticos',
-    'fragil',
-    'outros',
-  ];
-
-  static const _faixas = ['ate_50', 'ate_300', 'de_300_a_750', 'acima_750'];
+  late String _tipo;
+  late int _volumes;
+  late bool _naoEmpilhar;
 
   @override
   void initState() {
     super.initState();
     final rascunho = context.read<NovoPedido>();
-    _carga = rascunho.carga;
-    _observacoes = TextEditingController(text: _carga.observacoes ?? '');
-    _notaMotorista = TextEditingController(text: rascunho.observacaoMotorista ?? '');
+    final c = rascunho.carga;
+    String texto(double? v) => v == null
+        ? ''
+        : (v == v.roundToDouble() ? v.toInt().toString() : v.toString());
+    _peso = TextEditingController(text: texto(c.pesoKg));
+    _comprimento = TextEditingController(text: texto(c.comprimentoCm));
+    _largura = TextEditingController(text: texto(c.larguraCm));
+    _altura = TextEditingController(text: texto(c.alturaCm));
+    _observacoes = TextEditingController(text: c.observacoes ?? '');
+    _notaMotorista =
+        TextEditingController(text: rascunho.observacaoMotorista ?? '');
+    _tipo = c.tipoCarga;
+    _volumes = c.volumes;
+    _naoEmpilhar = c.naoEmpilhar;
   }
 
   @override
   void dispose() {
-    _observacoes.dispose();
-    _notaMotorista.dispose();
+    for (final c in [
+      _peso,
+      _comprimento,
+      _largura,
+      _altura,
+      _observacoes,
+      _notaMotorista
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
+  /// "12,5" e "12.5" valem; vazio ou invalido vira null.
+  double? _numero(String texto) =>
+      double.tryParse(texto.trim().replaceAll(',', '.'));
+
+  Carga get _carga {
+    final observacoes = _observacoes.text.trim();
+    return Carga(
+      tipoCarga: _tipo,
+      volumes: _volumes,
+      pesoKg: _numero(_peso.text),
+      comprimentoCm: _numero(_comprimento.text),
+      larguraCm: _numero(_largura.text),
+      alturaCm: _numero(_altura.text),
+      naoEmpilhar: _naoEmpilhar,
+      observacoes: observacoes.isEmpty ? null : observacoes,
+    );
+  }
+
+  void _emitir() => context.read<NovoPedido>().definirCarga(_carga);
+
   void _salvar() {
-    final rascunho = context.read<NovoPedido>();
-    rascunho.definirCarga(_carga.copiarCom(observacoes: _observacoes.text.trim()));
-    rascunho.definirObservacao(_notaMotorista.text.trim());
-    Navigator.of(context).pop();
+    _emitir();
+    context.read<NovoPedido>().definirObservacao(_notaMotorista.text.trim());
+    if (widget.etapaDoFluxo) {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const TelaOpcoesFrete()),
+      );
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  /// So reclama de valor digitado: campo vazio nao mostra erro (o asterisco ja indica que
+  /// e obrigatorio e os veiculos ficam bloqueados ate preencher).
+  String? _erro(TextEditingController controlador) {
+    final texto = controlador.text.trim();
+    if (texto.isEmpty) return null;
+    final valor = _numero(texto);
+    if (valor == null) return 'Número inválido';
+    if (valor <= 0) return 'Informe um valor maior que zero';
+    return null;
+  }
+
+  Widget _campoNumero(
+    TextEditingController controlador,
+    String rotulo, {
+    String? sufixo,
+  }) {
+    return TextField(
+      controller: controlador,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+      onChanged: (_) {
+        setState(() {}); // atualiza a mensagem de erro do proprio campo
+        _emitir();
+      },
+      decoration: InputDecoration(
+        labelText: rotulo,
+        suffixText: sufixo,
+        errorText: _erro(controlador),
+        errorMaxLines: 2,
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final categoria = context.select<NovoPedido, CategoriaVeiculo?>((n) => n.categoria);
-    final excede = categoria != null &&
-        (const {'ate_50': 50, 'ate_300': 300, 'de_300_a_750': 750, 'acima_750': 3500}[
-                _carga.faixaPeso] ??
-            0) >
-            categoria.pesoMaxKg;
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalhes da carga')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Bloco(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const TituloSecao('Tipo de item'),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final t in _tipos)
-                      ChoiceChip(
-                        label: Text(rotuloTipoItem(t)),
-                        selected: _carga.tipoItem == t,
-                        onSelected: (_) =>
-                            setState(() => _carga = _carga.copiarCom(tipoItem: t)),
-                      ),
-                  ],
-                ),
-              ],
-            ),
+      appBar: AppBar(
+        title: Text(
+            widget.etapaDoFluxo ? 'O que vamos levar?' : 'Detalhes da carga'),
+        bottom: widget.etapaDoFluxo ? const ProgressoPedido(etapa: 2) : null,
+        actions: const [
+          Padding(
+            padding: EdgeInsets.only(right: 4),
+            child: IconeInfoSecao(secao: SecaoAjuda.carga),
           ),
-          const SizedBox(height: 12),
-          Bloco(
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text('Numero de volumes',
-                      style: TextStyle(fontWeight: FontWeight.w600)),
+        ],
+      ),
+      body: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+          children: [
+            if (widget.etapaDoFluxo)
+              const Padding(
+                padding: EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'Conte o que será transportado. Com isso mostramos só os '
+                  'veículos que comportam a sua carga.',
+                  style: TextStyle(fontSize: 14, color: Cores.textoFraco),
                 ),
-                IconButton(
-                  onPressed: () => setState(() => _carga = _carga.copiarCom(
-                      volumes: _carga.volumes > 1 ? _carga.volumes - 1 : 1)),
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-                Text('${_carga.volumes}',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700)),
-                IconButton(
-                  onPressed: () => setState(
-                      () => _carga = _carga.copiarCom(volumes: _carga.volumes + 1)),
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Bloco(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const TituloSecao('Peso total estimado'),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final f in _faixas)
-                      ChoiceChip(
-                        label: Text(rotuloFaixaPeso(f)),
-                        selected: _carga.faixaPeso == f,
-                        onSelected: (_) =>
-                            setState(() => _carga = _carga.copiarCom(faixaPeso: f)),
-                      ),
-                  ],
-                ),
-                if (excede) ...[
+              ),
+            Bloco(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _campoNumero(_peso, 'Peso total *', sufixo: 'kg'),
+                  const SizedBox(height: 16),
+                  const Text('Dimensões do maior volume (em centímetros) *',
+                      style:
+                          TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                  const SizedBox(height: 8),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                          child: _campoNumero(_comprimento, 'Comprimento',
+                              sufixo: 'cm')),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child:
+                              _campoNumero(_largura, 'Largura', sufixo: 'cm')),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: _campoNumero(_altura, 'Altura', sufixo: 'cm')),
+                    ],
+                  ),
                   const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Cores.alerta.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(10),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Text('Quantidade de volumes',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                      IconButton(
+                        tooltip: 'Menos um volume',
+                        onPressed: _volumes > 1
+                            ? () {
+                                setState(() => _volumes--);
+                                _emitir();
+                              }
+                            : null,
+                        icon: const Icon(Icons.remove_circle_outline),
+                      ),
+                      Text('$_volumes',
+                          style: const TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.w700)),
+                      IconButton(
+                        tooltip: 'Mais um volume',
+                        onPressed: () {
+                          setState(() => _volumes++);
+                          _emitir();
+                        },
+                        icon: const Icon(Icons.add_circle_outline),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  DropdownButtonFormField<String>(
+                    initialValue: _tipo,
+                    decoration:
+                        const InputDecoration(labelText: 'Tipo de carga *'),
+                    items: [
+                      for (final t in Carga.tipos)
+                        DropdownMenuItem(
+                            value: t, child: Text(rotuloTipoCarga(t))),
+                    ],
+                    onChanged: (t) {
+                      if (t == null) return;
+                      setState(() => _tipo = t);
+                      _emitir();
+                    },
+                  ),
+                  CheckboxListTile(
+                    value: _naoEmpilhar,
+                    onChanged: (v) {
+                      setState(() => _naoEmpilhar = v ?? false);
+                      _emitir();
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    title: const Text('Não empilhar'),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Bloco(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  TextField(
+                    controller: _observacoes,
+                    maxLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    onChanged: (_) => _emitir(),
+                    onEditingComplete: () => FocusScope.of(context).unfocus(),
+                    decoration: const InputDecoration(
+                      labelText: 'O que está sendo transportado',
+                      hintText: 'Ex.: uma geladeira e 3 caixas',
                     ),
-                    child: Text(
-                      'Este peso excede a capacidade do ${categoria!.nome} '
-                      '(${categoria.pesoMaxKg} kg). Volte e escolha um veiculo maior.',
-                      style: const TextStyle(fontSize: 12.5, color: Cores.alerta),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _notaMotorista,
+                    maxLines: 2,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    onEditingComplete: () => FocusScope.of(context).unfocus(),
+                    decoration: const InputDecoration(
+                      labelText: 'Recado para o motorista (opcional)',
+                      hintText:
+                          'Ex.: portaria libera das 8h às 17h, use a entrada de serviço',
                     ),
                   ),
                 ],
-              ],
+              ),
             ),
+          ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+          decoration: const BoxDecoration(
+            color: Cores.superficie,
+            border: Border(top: BorderSide(color: Cores.borda)),
           ),
-          const SizedBox(height: 12),
-          Bloco(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const TituloSecao('Instrucoes de manuseio'),
-                CheckboxListTile(
-                  value: _carga.fragil,
-                  onChanged: (v) =>
-                      setState(() => _carga = _carga.copiarCom(fragil: v ?? false)),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Fragil - manusear com cuidado'),
-                ),
-                CheckboxListTile(
-                  value: _carga.naoEmpilhar,
-                  onChanged: (v) =>
-                      setState(() => _carga = _carga.copiarCom(naoEmpilhar: v ?? false)),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Nao empilhar'),
-                ),
-                CheckboxListTile(
-                  value: _carga.refrigerado,
-                  onChanged: (v) =>
-                      setState(() => _carga = _carga.copiarCom(refrigerado: v ?? false)),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  title: const Text('Precisa de refrigeracao'),
-                ),
-              ],
-            ),
+          child: FilledButton(
+            onPressed: _salvar,
+            child: Text(
+                widget.etapaDoFluxo ? 'Escolher veículo' : 'Salvar detalhes'),
           ),
-          const SizedBox(height: 12),
-          Bloco(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const TituloSecao('Descricao e notas'),
-                TextField(
-                  controller: _observacoes,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    labelText: 'O que esta sendo transportado',
-                    hintText: 'Ex.: uma mesa de vidro e 3 caixas',
-                  ),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: _notaMotorista,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Informacoes que ajudam o motorista',
-                    hintText: 'Ex.: portaria libera das 8h as 17h, use a entrada de servico',
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          FilledButton(onPressed: _salvar, child: const Text('Salvar detalhes')),
-        ],
+        ),
       ),
     );
   }

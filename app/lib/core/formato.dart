@@ -1,8 +1,9 @@
 import 'package:intl/intl.dart';
 
 final _moeda = NumberFormat.currency(locale: 'pt_BR', symbol: 'R\$');
-final _dataHora = DateFormat("dd/MM 'as' HH:mm", 'pt_BR');
+final _dataHora = DateFormat("dd/MM 'às' HH:mm", 'pt_BR');
 final _dataCurta = DateFormat('dd/MM/yyyy', 'pt_BR');
+final _peso = NumberFormat('#,##0.##', 'pt_BR');
 
 String moeda(num valor) => _moeda.format(valor);
 
@@ -35,11 +36,11 @@ String rotuloSituacao(String situacao) {
     case 'carregando':
       return 'Carregando';
     case 'em_transito':
-      return 'Em transito';
+      return 'Em trânsito';
     case 'entregue':
       return 'Entregue';
     case 'concluido':
-      return 'Concluido';
+      return 'Concluído';
     case 'cancelado':
       return 'Cancelado';
     default:
@@ -47,34 +48,35 @@ String rotuloSituacao(String situacao) {
   }
 }
 
-String rotuloTipoItem(String tipo) {
+String rotuloTipoCarga(String tipo) {
   switch (tipo) {
-    case 'alimentos':
-      return 'Alimentos / mercado';
-    case 'material_construcao':
-      return 'Material de construcao';
-    case 'roupas_pessoais':
-      return 'Roupas e itens pessoais';
-    case 'moveis_eletrodomesticos':
-      return 'Moveis e eletrodomesticos';
+    case 'caixas_pacotes':
+      return 'Caixas / pacotes';
+    case 'paletizada':
+      return 'Paletizada';
+    case 'granel':
+      return 'Granel';
     case 'fragil':
-      return 'Itens frageis';
+      return 'Frágil';
+    case 'refrigerada':
+      return 'Refrigerada';
+    case 'perigosa':
+      return 'Perigosa';
     default:
-      return 'Outros';
+      return tipo;
   }
 }
 
-String rotuloFaixaPeso(String faixa) {
-  switch (faixa) {
-    case 'ate_50':
-      return 'Ate 50 kg';
-    case 'ate_300':
-      return 'Ate 300 kg';
-    case 'de_300_a_750':
-      return 'De 300 a 750 kg';
-    default:
-      return 'Acima de 750 kg';
-  }
+/// 650 -> "650 kg"; 1250.5 -> "1.250,5 kg".
+String pesoKg(num valor) => '${_peso.format(valor)} kg';
+
+String _numeroCurto(double v) =>
+    v == v.roundToDouble() ? v.toInt().toString() : v.toStringAsFixed(1).replaceAll('.', ',');
+
+/// "120 x 100 x 150 cm" (comprimento x largura x altura).
+String medidasCm(double? comprimento, double? largura, double? altura) {
+  if (comprimento == null || largura == null || altura == null) return '-';
+  return '${_numeroCurto(comprimento)} x ${_numeroCurto(largura)} x ${_numeroCurto(altura)} cm';
 }
 
 String rotuloPagamento(String forma) {
@@ -84,7 +86,7 @@ String rotuloPagamento(String forma) {
     case 'pix':
       return 'Pix';
     case 'cartao':
-      return 'Cartao de credito';
+      return 'Cartão de crédito';
     case 'dinheiro':
       return 'Dinheiro';
     default:

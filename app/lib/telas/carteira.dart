@@ -61,7 +61,7 @@ class _TelaCarteiraState extends State<TelaCarteira> {
     await repo.recarregar(valor);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Recarga de ${moeda(valor)} concluida')),
+      SnackBar(content: Text('Recarga de ${moeda(valor)} concluída')),
     );
     _carregar();
   }
@@ -88,7 +88,7 @@ class _TelaCarteiraState extends State<TelaCarteira> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Saldo disponivel',
+                      const Text('Saldo disponível',
                           style: TextStyle(color: Color(0xFFBFD3E8), fontSize: 13)),
                       const SizedBox(height: 6),
                       Text(moeda(c.saldo),
@@ -116,14 +116,14 @@ class _TelaCarteiraState extends State<TelaCarteira> {
                     children: [
                       ListTile(
                         leading: const Icon(Icons.credit_card, color: Cores.primaria),
-                        title: const Text('Metodos de pagamento'),
-                        subtitle: const Text('Nenhum cartao salvo',
+                        title: const Text('Métodos de pagamento'),
+                        subtitle: const Text('Nenhum cartão salvo',
                             style: TextStyle(fontSize: 12.5)),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                             content: Text(
-                                'Cadastro de cartao fica fora do prototipo por seguranca.'),
+                                'Cadastro de cartão fica fora do protótipo por segurança.'),
                           ),
                         ),
                       ),
@@ -132,7 +132,7 @@ class _TelaCarteiraState extends State<TelaCarteira> {
                         leading: const Icon(Icons.local_offer_outlined,
                             color: Cores.primaria),
                         title: const Text('Cupons'),
-                        subtitle: const Text('SOLUS10 e MUDANCA15 disponiveis',
+                        subtitle: const Text('SOLUS10 e MUDANCA15 disponíveis',
                             style: TextStyle(fontSize: 12.5)),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () {},
@@ -144,7 +144,7 @@ class _TelaCarteiraState extends State<TelaCarteira> {
                 const TituloSecao('Extrato'),
                 if (c.transacoes.isEmpty)
                   const Bloco(
-                    child: Text('Nenhuma movimentacao ainda.',
+                    child: Text('Nenhuma movimentação ainda.',
                         style: TextStyle(color: Cores.textoFraco)),
                   )
                 else

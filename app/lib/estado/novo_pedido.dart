@@ -1,10 +1,13 @@
 import 'package:flutter/foundation.dart';
 
+import '../core/compatibilidade.dart';
 import '../dados/repositorio.dart';
 import '../modelos/modelos.dart';
 
 /// Rascunho do pedido sendo montado. Concentra as regras de validacao
 /// do fluxo (RN01, RN02, RN04, RN10) antes de chamar o repositorio.
+///
+/// Ordem do fluxo: roteiro -> detalhes da carga -> veiculo -> parceiro -> pagamento.
 class NovoPedido extends ChangeNotifier {
   NovoPedido(this._repo);
 
@@ -26,6 +29,12 @@ class NovoPedido extends ChangeNotifier {
 
   // --- carga ---
   Carga carga = const Carga();
+
+  /// Preenchido quando uma alteracao na carga deixou o veiculo escolhido incompativel.
+  String? avisoVeiculoDesmarcado;
+
+  /// Muda a cada limpar(): a tela usa para recriar os campos do formulario da carga.
+  int geracao = 0;
 
   // --- pagamento ---
   String? formaPagamento;
@@ -57,21 +66,28 @@ class NovoPedido extends ChangeNotifier {
     return null;
   }
 
-  /// Regra RN02: o peso declarado nao pode exceder a capacidade do veiculo.
-  static const _pesoFaixa = {
-    'ate_50': 50,
-    'ate_300': 300,
-    'de_300_a_750': 750,
-    'acima_750': 3500,
-  };
+  Map<String, String> get errosCarga => validarCarga(carga);
 
-  String? get avisoCapacidade {
-    final c = categoria;
-    if (c == null) return null;
-    final peso = _pesoFaixa[carga.faixaPeso] ?? 0;
-    if (peso > c.pesoMaxKg) {
-      return 'O peso declarado (${carga.faixaPeso == 'acima_750' ? 'acima de 750 kg' : 'ate $peso kg'}) '
-          'excede a capacidade do ${c.nome} (${c.pesoMaxKg} kg). Escolha um veiculo maior.';
+  bool get cargaValida => carga.completa && errosCarga.isEmpty;
+
+  /// Regra RN02: peso, tamanho do maior volume e tipo de carga precisam servir ao veiculo.
+  /// Null enquanto a carga esta incompleta.
+  ResultadoCompatibilidade? compatibilidadeDe(CategoriaVeiculo veiculo) =>
+      cargaValida ? verificarCompatibilidade(carga, veiculo) : null;
+
+  /// A carga esta valida, mas nenhum veiculo do catalogo comporta.
+  bool get nenhumVeiculoCompativel =>
+      cargaValida &&
+      catalogo.isNotEmpty &&
+      catalogo.every((v) => !compatibilidadeDe(v)!.compativel);
+
+  /// Menor veiculo compativel (catalogo vem ordenado por capacidade crescente):
+  /// costuma sair mais barato, entao e a recomendacao padrao. Null enquanto a
+  /// carga esta incompleta ou nenhum veiculo comporta.
+  CategoriaVeiculo? get veiculoRecomendado {
+    if (!cargaValida) return null;
+    for (final v in catalogo) {
+      if (compatibilidadeDe(v)!.compativel) return v;
     }
     return null;
   }
@@ -79,6 +95,7 @@ class NovoPedido extends ChangeNotifier {
   List<String> get pendenciasParaConfirmar {
     final faltas = <String>[];
     if (!roteiroCompleto) faltas.add('Informe coleta e entrega');
+    if (!cargaValida) faltas.add('Preencha os detalhes da carga');
     if (categoria == null) faltas.add('Selecione o veiculo');
     if (ofertaEscolhida == null) faltas.add('Escolha um parceiro');
     if (formaPagamento == null) faltas.add('Selecione a forma de pagamento');
@@ -86,7 +103,10 @@ class NovoPedido extends ChangeNotifier {
     if (agendado && quando != null && !quando!.isAfter(DateTime.now())) {
       faltas.add('O agendamento deve ser no futuro');
     }
-    if (avisoCapacidade != null) faltas.add('Ajuste o veiculo para o peso declarado');
+    final escolhido = categoria;
+    if (escolhido != null && cargaValida && !compatibilidadeDe(escolhido)!.compativel) {
+      faltas.add('Escolha um veiculo compativel com a carga');
+    }
     return faltas;
   }
 
@@ -144,8 +164,11 @@ class NovoPedido extends ChangeNotifier {
   }
 
   void selecionarCategoria(CategoriaVeiculo c) {
+    final compat = compatibilidadeDe(c);
+    if (compat == null || !compat.compativel) return; // veiculo desabilitado na tela
     if (categoria?.id != c.id) servicosSelecionados.clear();
     categoria = c;
+    avisoVeiculoDesmarcado = null;
     notifyListeners();
     cotar();
   }
@@ -166,8 +189,23 @@ class NovoPedido extends ChangeNotifier {
     cotar();
   }
 
+  /// Se a carga passou a ser valida e o veiculo escolhido nao serve mais, desmarca o veiculo
+  /// e deixa o aviso em [avisoVeiculoDesmarcado]. Enquanto a carga esta incompleta (o usuario
+  /// ainda digitando), a escolha e mantida e o pedido so nao pode ser confirmado.
   void definirCarga(Carga nova) {
     carga = nova;
+    final escolhido = categoria;
+    if (escolhido != null && cargaValida) {
+      final compat = verificarCompatibilidade(carga, escolhido);
+      if (!compat.compativel) {
+        avisoVeiculoDesmarcado =
+            '${escolhido.nome} foi desmarcado: ${compat.motivo}. Escolha outro veiculo.';
+        categoria = null;
+        servicosSelecionados.clear();
+        cotacao = null;
+        _chaveEscolhida = null;
+      }
+    }
     notifyListeners();
   }
 
@@ -261,6 +299,8 @@ class NovoPedido extends ChangeNotifier {
     servicosSelecionados.clear();
     horasContratadas = null;
     carga = const Carga();
+    avisoVeiculoDesmarcado = null;
+    geracao++;
     formaPagamento = null;
     pagador = 'remetente';
     exigeComprovante = true;

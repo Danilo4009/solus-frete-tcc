@@ -131,9 +131,9 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       builder: (contexto) => AlertDialog(
         title: const Text('Cancelar pedido'),
         content: const Text(
-          'Antes da alocacao o cancelamento e gratuito. '
+          'Antes da alocação o cancelamento é gratuito. '
           'Depois que um parceiro aceita, aplica-se taxa de 15%. '
-          'Apos a coleta o pedido nao pode ser cancelado.',
+          'Após a coleta o pedido não pode ser cancelado.',
         ),
         actions: [
           TextButton(
@@ -195,7 +195,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
               TextField(
                 controller: comentario,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Comentario (opcional)'),
+                decoration: const InputDecoration(labelText: 'Comentário (opcional)'),
               ),
               const SizedBox(height: 8),
               if (_pedido?.motoristaNome != null)
@@ -213,7 +213,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: () => Navigator.of(contexto).pop(true),
-                child: const Text('Enviar avaliacao'),
+                child: const Text('Enviar avaliação'),
               ),
             ],
           ),
@@ -226,7 +226,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       await repo.avaliarPedido(widget.pedidoId, nota, comentario.text.trim(), favoritar);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Obrigado pela avaliacao!')),
+        const SnackBar(content: Text('Obrigado pela avaliação!')),
       );
     }
     comentario.dispose();
@@ -234,7 +234,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
 
   String _nota(Pedido p) {
     final nota = p.parceiroAvaliacao ?? 0;
-    return nota > 0 ? nota.toStringAsFixed(2) : 'Sem avaliacoes';
+    return nota > 0 ? nota.toStringAsFixed(2) : 'Sem avaliações';
   }
 
   double? get _progresso {
@@ -378,7 +378,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                           onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                               content: Text(
-                                  'No app final o contato e mediado, sem expor os numeros.'),
+                                  'No app final o contato é mediado, sem expor os números.'),
                             ),
                           ),
                         ),
@@ -473,25 +473,29 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                       children: [
                         const TituloSecao('Carga'),
                         Text(
-                          '${rotuloTipoItem(p.carga!.tipoItem)} - '
-                          '${p.carga!.volumes} volume(s) - '
-                          '${rotuloFaixaPeso(p.carga!.faixaPeso)}',
+                          '${rotuloTipoCarga(p.carga!.tipoCarga)} - '
+                          '${p.carga!.volumes} volume(s)',
                           style: const TextStyle(fontSize: 13.5),
                         ),
-                        if (p.carga!.fragil || p.carga!.naoEmpilhar)
+                        if (p.carga!.pesoKg != null)
                           Padding(
-                            padding: const EdgeInsets.only(top: 6),
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              'Peso total ${pesoKg(p.carga!.pesoKg!)} - maior volume '
+                              '${medidasCm(p.carga!.comprimentoCm, p.carga!.larguraCm, p.carga!.alturaCm)}',
+                              style: const TextStyle(
+                                  fontSize: 12.5, color: Cores.textoFraco),
+                            ),
+                          ),
+                        if (p.carga!.naoEmpilhar)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 6),
                             child: Wrap(
                               spacing: 8,
                               children: [
-                                if (p.carga!.fragil)
-                                  const Chip(
-                                      label: Text('Fragil'),
-                                      visualDensity: VisualDensity.compact),
-                                if (p.carga!.naoEmpilhar)
-                                  const Chip(
-                                      label: Text('Nao empilhar'),
-                                      visualDensity: VisualDensity.compact),
+                                Chip(
+                                    label: Text('Nao empilhar'),
+                                    visualDensity: VisualDensity.compact),
                               ],
                             ),
                           ),
@@ -549,7 +553,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                       icon: const Icon(Icons.play_arrow_rounded),
                       label: Text(p.aguardandoAceite
                           ? 'Simular aceite do parceiro'
-                          : 'Simular proxima etapa'),
+                          : 'Simular próxima etapa'),
                     ),
                     const SizedBox(height: 10),
                   ],
@@ -572,8 +576,8 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
                   ),
                   const SizedBox(height: 10),
                   const Text(
-                    'Os botoes de simular existem apenas no prototipo, para demonstrar '
-                    'a maquina de estados sem depender do app do parceiro.',
+                    'Os botões de simular existem apenas no protótipo, para demonstrar '
+                    'a máquina de estados sem depender do app do parceiro.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 11.5, color: Cores.textoFraco),
                   ),

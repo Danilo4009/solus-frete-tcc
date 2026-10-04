@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../core/formato.dart';
 import '../core/tema.dart';
 import '../core/widgets/comuns.dart';
+import '../core/widgets/progresso_pedido.dart';
 import '../estado/novo_pedido.dart';
 import 'acompanhamento.dart';
 
@@ -38,7 +39,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               ListTile(
                 leading: const Icon(Icons.account_balance_wallet_outlined),
                 title: const Text('Carteira Solus'),
-                subtitle: const Text('Debita do saldo disponivel'),
+                subtitle: const Text('Debita do saldo disponível'),
                 trailing: rascunho.formaPagamento == 'carteira'
                     ? const Icon(Icons.check_circle, color: Cores.primaria)
                     : null,
@@ -61,7 +62,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               ),
               ListTile(
                 leading: const Icon(Icons.credit_card),
-                title: const Text('Cartao de credito'),
+                title: const Text('Cartão de crédito'),
                 subtitle: const Text('Cadastre no app do cliente'),
                 trailing: rascunho.formaPagamento == 'cartao'
                     ? const Icon(Icons.check_circle, color: Cores.primaria)
@@ -79,30 +80,33 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                 trailing: rascunho.formaPagamento == 'dinheiro'
                     ? const Icon(Icons.check_circle, color: Cores.primaria)
                     : null,
-                onTap: () => refazer(
-                    () => rascunho.definirPagamento('dinheiro', quemPaga: rascunho.pagador)),
+                onTap: () => refazer(() => rascunho.definirPagamento('dinheiro',
+                    quemPaga: rascunho.pagador)),
               ),
               if (rascunho.formaPagamento == 'dinheiro') ...[
                 RadioListTile<String>(
                   value: 'remetente',
                   groupValue: rascunho.pagador,
-                  onChanged: (v) => refazer(() =>
-                      rascunho.definirPagamento('dinheiro', quemPaga: v ?? 'remetente')),
+                  onChanged: (v) => refazer(() => rascunho.definirPagamento(
+                      'dinheiro',
+                      quemPaga: v ?? 'remetente')),
                   title: const Text('Remetente paga na coleta'),
                   subtitle: Text(rascunho.coleta?.linhaPrincipal ?? '',
-                      style: const TextStyle(fontSize: 12)),
+                      style: const TextStyle(fontSize: 12.5)),
                 ),
                 RadioListTile<String>(
                   value: 'destinatario',
                   groupValue: rascunho.pagador,
-                  onChanged: (v) => refazer(() =>
-                      rascunho.definirPagamento('dinheiro', quemPaga: v ?? 'destinatario')),
-                  title: const Text('Destinatario paga na entrega (frete a pagar)'),
+                  onChanged: (v) => refazer(() => rascunho.definirPagamento(
+                      'dinheiro',
+                      quemPaga: v ?? 'destinatario')),
+                  title: const Text(
+                      'Destinatário paga na entrega (frete a pagar)'),
                   subtitle: Text(
                       rascunho.entregas.isEmpty
                           ? ''
                           : rascunho.entregas.last.linhaPrincipal,
-                      style: const TextStyle(fontSize: 12)),
+                      style: const TextStyle(fontSize: 12.5)),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16),
@@ -126,7 +130,7 @@ class _TelaRevisaoState extends State<TelaRevisao> {
 
     if (!_aceiteItens) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('Confirme a declaracao de itens proibidos'),
+        content: Text('Confirme a declaração de itens proibidos'),
       ));
       return;
     }
@@ -143,13 +147,16 @@ class _TelaRevisaoState extends State<TelaRevisao> {
       if (!mounted) return;
       if (pedido == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Nao foi possivel criar o pedido')),
+          const SnackBar(content: Text('Não foi possível criar o pedido')),
         );
         return;
       }
       rascunho.limpar();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => TelaAcompanhamento(pedidoId: pedido.id)),
+      // Remove as etapas do pedido: ao voltar do acompanhamento, cai na home.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+            builder: (_) => TelaAcompanhamento(pedidoId: pedido.id)),
+        (rota) => rota.isFirst,
       );
     } catch (e) {
       if (mounted) {
@@ -167,7 +174,10 @@ class _TelaRevisaoState extends State<TelaRevisao> {
     final opcao = rascunho.ofertaEscolhida;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Revisar e confirmar')),
+      appBar: AppBar(
+        title: const Text('Revisar e confirmar'),
+        bottom: const ProgressoPedido(etapa: 4),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -192,10 +202,11 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                             children: [
                               Text(rascunho.paradas[i].linhaPrincipal,
                                   style: const TextStyle(
-                                      fontWeight: FontWeight.w600, fontSize: 14)),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14)),
                               Text(rascunho.paradas[i].linhaSecundaria,
                                   style: const TextStyle(
-                                      fontSize: 12, color: Cores.textoFraco)),
+                                      fontSize: 12.5, color: Cores.textoFraco)),
                             ],
                           ),
                         ),
@@ -205,13 +216,14 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                 const Divider(height: 22),
                 Row(
                   children: [
-                    const Icon(Icons.schedule, size: 16, color: Cores.textoFraco),
+                    const Icon(Icons.schedule,
+                        size: 16, color: Cores.textoFraco),
                     const SizedBox(width: 8),
                     Text(
                       rascunho.agendado
                           ? 'Coleta agendada para ${dataHora(rascunho.quando)}'
                           : 'Coleta imediata',
-                      style: const TextStyle(fontSize: 13),
+                      style: const TextStyle(fontSize: 12.5),
                     ),
                   ],
                 ),
@@ -223,10 +235,9 @@ class _TelaRevisaoState extends State<TelaRevisao> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const TituloSecao('Veiculo e carga'),
+                const TituloSecao('Veículo e carga'),
                 _Linha(
-                    rotulo: 'Veiculo',
-                    valor: rascunho.categoria?.nome ?? '-'),
+                    rotulo: 'Veículo', valor: rascunho.categoria?.nome ?? '-'),
                 _Linha(
                     rotulo: 'Parceiro',
                     valor: opcao == null
@@ -239,26 +250,34 @@ class _TelaRevisaoState extends State<TelaRevisao> {
                         : 'entrega em ~${duracao(opcao.prazoEntregaMin)}'),
                 if (rascunho.horasContratadas != null)
                   _Linha(
-                      rotulo: 'Contratacao',
-                      valor: '${rascunho.horasContratadas}h por periodo'),
+                      rotulo: 'Contratação',
+                      valor: '${rascunho.horasContratadas}h por período'),
                 _Linha(
                     rotulo: 'Carga',
                     valor:
-                        '${rotuloTipoItem(rascunho.carga.tipoItem)}, ${rascunho.carga.volumes} volume(s)'),
+                        '${rotuloTipoCarga(rascunho.carga.tipoCarga)}, ${rascunho.carga.volumes} volume(s)'),
                 _Linha(
-                    rotulo: 'Peso declarado',
-                    valor: rotuloFaixaPeso(rascunho.carga.faixaPeso)),
+                    rotulo: 'Peso total',
+                    valor: rascunho.carga.pesoKg == null
+                        ? '-'
+                        : pesoKg(rascunho.carga.pesoKg!)),
+                _Linha(
+                    rotulo: 'Maior volume',
+                    valor: medidasCm(rascunho.carga.comprimentoCm,
+                        rascunho.carga.larguraCm, rascunho.carga.alturaCm)),
                 if (rascunho.servicosSelecionados.isNotEmpty)
                   _Linha(
-                    rotulo: 'Servicos',
+                    rotulo: 'Serviços',
                     valor: rascunho.categoria!.servicos
-                        .where((s) => rascunho.servicosSelecionados.contains(s.id))
+                        .where(
+                            (s) => rascunho.servicosSelecionados.contains(s.id))
                         .map((s) => s.nome)
                         .join(', '),
                   ),
                 _Linha(
                     rotulo: 'Comprovante',
-                    valor: rascunho.exigeComprovante ? 'Exigido' : 'Nao exigido'),
+                    valor:
+                        rascunho.exigeComprovante ? 'Exigido' : 'Não exigido'),
               ],
             ),
           ),
@@ -266,16 +285,17 @@ class _TelaRevisaoState extends State<TelaRevisao> {
           Bloco(
             padding: EdgeInsets.zero,
             child: ListTile(
-              leading: const Icon(Icons.payments_outlined, color: Cores.primaria),
+              leading:
+                  const Icon(Icons.payments_outlined, color: Cores.primaria),
               title: Text(rascunho.formaPagamento == null
                   ? 'Selecione a forma de pagamento'
                   : rotuloPagamento(rascunho.formaPagamento!)),
               subtitle: Text(
                 rascunho.formaPagamento == 'dinheiro'
                     ? (rascunho.pagador == 'destinatario'
-                        ? 'Frete a pagar: destinatario paga na entrega'
+                        ? 'Frete a pagar: destinatário paga na entrega'
                         : 'Remetente paga na coleta')
-                    : 'Obrigatorio para confirmar o pedido',
+                    : 'Obrigatório para confirmar o pedido',
                 style: TextStyle(
                   fontSize: 12.5,
                   color: rascunho.formaPagamento == null ? Cores.alerta : null,
@@ -293,8 +313,8 @@ class _TelaRevisaoState extends State<TelaRevisao> {
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               title: const Text(
-                'Declaro que a carga nao contem itens proibidos pela politica do Solus Frete.',
-                style: TextStyle(fontSize: 13),
+                'Declaro que a carga não contém itens proibidos pela política do Solus Frete.',
+                style: TextStyle(fontSize: 12.5),
               ),
             ),
           ),
@@ -303,32 +323,36 @@ class _TelaRevisaoState extends State<TelaRevisao> {
             Bloco(
               child: Column(
                 children: [
-                  _Linha(rotulo: 'Taxa de entrega', valor: moeda(opcao.valorFrete)),
+                  _Linha(
+                      rotulo: 'Taxa de entrega',
+                      valor: moeda(opcao.valorFrete)),
                   if (opcao.valorAdicionais > 0)
                     _Linha(
-                        rotulo: 'Servicos adicionais',
+                        rotulo: 'Serviços adicionais',
                         valor: moeda(opcao.valorAdicionais)),
                   if (opcao.desconto > 0)
-                    _Linha(rotulo: 'Desconto', valor: '- ${moeda(opcao.desconto)}'),
+                    _Linha(
+                        rotulo: 'Desconto',
+                        valor: '- ${moeda(opcao.desconto)}'),
                   const Divider(height: 20),
                   Row(
                     children: [
                       const Expanded(
                         child: Text('Total',
                             style: TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700)),
+                                fontSize: 15, fontWeight: FontWeight.w700)),
                       ),
                       Text(moeda(opcao.total),
                           style: const TextStyle(
-                              fontSize: 22, fontWeight: FontWeight.w800)),
+                              fontSize: 20, fontWeight: FontWeight.w800)),
                     ],
                   ),
                   const SizedBox(height: 6),
                   const Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Pedagio e estacionamento nao estao inclusos e sao acertados direto com o parceiro.',
-                      style: TextStyle(fontSize: 11.5, color: Cores.textoFraco),
+                      'Pedágio e estacionamento não estão inclusos e são acertados direto com o parceiro.',
+                      style: TextStyle(fontSize: 11, color: Cores.textoFraco),
                     ),
                   ),
                 ],
@@ -363,14 +387,14 @@ class _Linha extends StatelessWidget {
           Expanded(
             flex: 2,
             child: Text(rotulo,
-                style: const TextStyle(color: Cores.textoFraco, fontSize: 13.5)),
+                style: const TextStyle(color: Cores.textoFraco, fontSize: 14)),
           ),
           Expanded(
             flex: 3,
             child: Text(valor,
                 textAlign: TextAlign.right,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 13.5)),
+                style:
+                    const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
           ),
         ],
       ),

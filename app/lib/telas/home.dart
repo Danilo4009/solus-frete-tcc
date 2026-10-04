@@ -151,7 +151,7 @@ class _Menu extends StatelessWidget {
             ),
             ListTile(
               leading: const Icon(Icons.notifications_none_rounded),
-              title: const Text('Notificacoes'),
+              title: const Text('Notificações'),
               onTap: () {
                 Navigator.of(context).pop();
                 Navigator.of(context).push(
@@ -162,7 +162,7 @@ class _Menu extends StatelessWidget {
             const Divider(),
             ListTile(
               leading: const Icon(Icons.person_outline),
-              title: const Text('Perfil e configuracoes'),
+              title: const Text('Perfil e configurações'),
               onTap: () => onIr(3),
             ),
             ListTile(
@@ -175,7 +175,7 @@ class _Menu extends StatelessWidget {
             ),
             const Padding(
               padding: EdgeInsets.all(20),
-              child: Text('Solus Frete - prototipo TCC v1.0',
+              child: Text('Solus Frete - protótipo TCC v1.0',
                   style: TextStyle(fontSize: 11.5, color: Cores.textoFraco)),
             ),
           ],

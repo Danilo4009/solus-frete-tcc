@@ -87,6 +87,8 @@ CREATE TABLE categoria_veiculo (
   largura_m     DECIMAL(5,2) NULL,
   altura_m      DECIMAL(5,2) NULL,
   peso_max_kg   INT UNSIGNED NOT NULL,
+  aceita_refrigerada TINYINT(1) NOT NULL DEFAULT 0,  -- bau refrigerado
+  aceita_perigosa    TINYINT(1) NOT NULL DEFAULT 0,  -- habilitado para carga perigosa
   ordem         INT NOT NULL DEFAULT 0,
   ativo         TINYINT(1) NOT NULL DEFAULT 1,
   UNIQUE KEY uk_categoria_codigo (codigo)
@@ -295,13 +297,14 @@ CREATE TABLE pedido_parada (
 CREATE TABLE pedido_carga (
   id                   BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   pedido_id            BIGINT UNSIGNED NOT NULL,
-  tipo_item            ENUM('alimentos','material_construcao','roupas_pessoais',
-                            'moveis_eletrodomesticos','fragil','outros') NOT NULL,
+  tipo_carga           ENUM('caixas_pacotes','paletizada','granel','fragil',
+                            'refrigerada','perigosa') NOT NULL,
   volumes              SMALLINT UNSIGNED NOT NULL DEFAULT 1,
-  faixa_peso           ENUM('ate_50','ate_300','de_300_a_750','acima_750') NOT NULL,
-  instrucao_fragil     TINYINT(1) NOT NULL DEFAULT 0,
+  peso_kg              DECIMAL(9,2) NOT NULL,          -- peso total
+  comprimento_cm       DECIMAL(8,1) NOT NULL,          -- dimensoes do maior volume
+  largura_cm           DECIMAL(8,1) NOT NULL,
+  altura_cm            DECIMAL(8,1) NOT NULL,
   instrucao_nao_empilhar TINYINT(1) NOT NULL DEFAULT 0,
-  instrucao_refrigerado TINYINT(1) NOT NULL DEFAULT 0,
   observacoes          VARCHAR(500) NULL,
   nota_fiscal_url      VARCHAR(500) NULL,
   UNIQUE KEY uk_carga_pedido (pedido_id),

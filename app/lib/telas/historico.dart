@@ -51,7 +51,7 @@ class _TelaHistoricoState extends State<TelaHistorico>
                   controller: _busca,
                   onChanged: (_) => setState(() {}),
                   decoration: InputDecoration(
-                    hintText: 'Buscar por codigo ou endereco',
+                    hintText: 'Buscar por código ou endereço',
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _busca.text.isEmpty
                         ? null
@@ -72,7 +72,7 @@ class _TelaHistoricoState extends State<TelaHistorico>
                 indicatorColor: Cores.primaria,
                 tabs: const [
                   Tab(text: 'Em andamento'),
-                  Tab(text: 'Concluidos'),
+                  Tab(text: 'Concluídos'),
                   Tab(text: 'Cancelados'),
                 ],
               ),
@@ -114,8 +114,8 @@ class _ListaPedidosState extends State<_ListaPedidos> {
   Future<void> _carregar() async {
     setState(() => _carregando = true);
     final repo = context.read<Sessao>().repo;
-    final lista =
-        await repo.listarPedidos(situacao: widget.situacao, busca: widget.busca);
+    final lista = await repo.listarPedidos(
+        situacao: widget.situacao, busca: widget.busca);
     if (!mounted) return;
     setState(() {
       _pedidos = lista;
@@ -132,7 +132,7 @@ class _ListaPedidosState extends State<_ListaPedidos> {
       return const Vazio(
         icone: Icons.inbox_outlined,
         titulo: 'Nenhum pedido aqui',
-        descricao: 'Quando voce solicitar um frete, ele aparece nesta lista.',
+        descricao: 'Quando você solicitar um frete, ele aparece nesta lista.',
       );
     }
     return RefreshIndicator(
@@ -167,14 +167,34 @@ class _ListaPedidosState extends State<_ListaPedidos> {
                 _LinhaParada(
                   icone: Icons.trip_origin,
                   cor: Cores.primaria,
-                  texto: p.origem?.linhaPrincipal ?? '-',
+                  texto: p.origemExibicao,
                 ),
                 const SizedBox(height: 4),
                 _LinhaParada(
                   icone: Icons.place,
                   cor: Cores.destaque,
-                  texto: p.destino?.linhaPrincipal ?? '-',
+                  texto: p.destinoExibicao,
                 ),
+                if (p.entregasExtras > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 22, top: 2),
+                    child: Text('+${p.entregasExtras} parada(s)',
+                        style: const TextStyle(
+                            fontSize: 11, color: Cores.textoFraco)),
+                  ),
+                if (p.parceiroNome != null) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline,
+                          size: 14, color: Cores.textoFraco),
+                      const SizedBox(width: 6),
+                      Text(p.parceiroNome!,
+                          style: const TextStyle(
+                              fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ],
                 const Divider(height: 20),
                 Row(
                   children: [
@@ -186,7 +206,8 @@ class _ListaPedidosState extends State<_ListaPedidos> {
                             fontSize: 12.5, color: Cores.textoFraco)),
                     const SizedBox(width: 12),
                     if (p.tipoRetirada == 'agendada') ...[
-                      const Icon(Icons.event, size: 15, color: Cores.textoFraco),
+                      const Icon(Icons.event,
+                          size: 15, color: Cores.textoFraco),
                       const SizedBox(width: 5),
                       Text(dataHora(p.agendadoPara),
                           style: const TextStyle(
@@ -211,7 +232,8 @@ class _ListaPedidosState extends State<_ListaPedidos> {
 }
 
 class _LinhaParada extends StatelessWidget {
-  const _LinhaParada({required this.icone, required this.cor, required this.texto});
+  const _LinhaParada(
+      {required this.icone, required this.cor, required this.texto});
 
   final IconData icone;
   final Color cor;

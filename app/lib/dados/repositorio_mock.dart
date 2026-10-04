@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import '../core/compatibilidade.dart';
 import '../core/config.dart';
+import '../core/veiculos_config.dart';
 import '../modelos/modelos.dart';
 import 'repositorio.dart';
 import 'repositorio_api.dart' show ErroApi;
@@ -26,15 +28,16 @@ class RepositorioMock implements Repositorio {
 
   // ---------------------------------------------------------------- preco
   static const _tarifas = {
-    // codigo: (base, porKm, porParada, minimo, hora)
+    // codigo: (base, porKm, porParada, minimo, hora) - mesmos valores do seed (tabela_preco)
     'moto': (8.0, 1.90, 4.0, 14.0, 38.0),
-    'carro_hatch': (14.0, 2.40, 6.0, 22.0, 52.0),
     'carro': (16.0, 2.70, 6.0, 26.0, 58.0),
     'utilitario': (28.0, 3.60, 10.0, 45.0, 78.0),
     'van': (38.0, 4.30, 10.0, 62.0, 92.0),
-    'carreto': (52.0, 5.20, 10.0, 85.0, 110.0),
-    'caminhao_35': (90.0, 7.40, 10.0, 140.0, 160.0),
-    'caminhao_75': (140.0, 9.80, 10.0, 210.0, 220.0),
+    'vuc': (65.0, 5.80, 10.0, 105.0, 125.0),
+    'caminhao_34': (90.0, 7.40, 10.0, 140.0, 160.0),
+    'caminhao_toco': (140.0, 9.80, 10.0, 210.0, 220.0),
+    'caminhao_truck': (190.0, 12.50, 10.0, 280.0, 290.0),
+    'carreta': (320.0, 18.00, 10.0, 480.0, 480.0),
   };
 
   void _semear() {
@@ -56,51 +59,31 @@ class RepositorioMock implements Repositorio {
     List<ServicoAdicional> para(String codigo) {
       final lista = <ServicoAdicional>[servicos[3], servicos[5]];
       if (codigo != 'moto') lista.add(servicos[4]);
-      if (['utilitario', 'van', 'carreto', 'caminhao_35', 'caminhao_75'].contains(codigo)) {
-        lista.add(servicos[0]);
-      }
-      if (['van', 'carreto', 'caminhao_35', 'caminhao_75'].contains(codigo)) {
-        lista.add(servicos[1]);
-      }
-      if (['carreto', 'caminhao_35', 'caminhao_75'].contains(codigo)) {
+      const grandes = ['vuc', 'caminhao_34', 'caminhao_toco', 'caminhao_truck', 'carreta'];
+      if (['utilitario', 'van', ...grandes].contains(codigo)) lista.add(servicos[0]);
+      if (['van', ...grandes].contains(codigo)) lista.add(servicos[1]);
+      if (['vuc', 'caminhao_34', 'caminhao_toco', 'caminhao_truck'].contains(codigo)) {
         lista.add(servicos[2]);
       }
       return lista;
     }
 
     _veiculos = [
-      CategoriaVeiculo(id: 1, codigo: 'moto', nome: 'Moto',
-          descricao: 'Documentos e encomendas pequenas.',
-          comprimentoM: 0.4, larguraM: 0.35, alturaM: 0.3, pesoMaxKg: 20,
-          valorHora: 38, servicos: para('moto')),
-      CategoriaVeiculo(id: 2, codigo: 'carro_hatch', nome: 'Carro Hatch',
-          descricao: 'Caixas pequenas e compras do dia.',
-          comprimentoM: 1.0, larguraM: 0.8, alturaM: 0.6, pesoMaxKg: 150,
-          valorHora: 52, servicos: para('carro_hatch')),
-      CategoriaVeiculo(id: 3, codigo: 'carro', nome: 'Carro',
-          descricao: 'Volumes medios no porta-malas e bancos.',
-          comprimentoM: 1.2, larguraM: 0.9, alturaM: 0.7, pesoMaxKg: 200,
-          valorHora: 58, servicos: para('carro')),
-      CategoriaVeiculo(id: 4, codigo: 'utilitario', nome: 'Utilitario / Pick-Up',
-          descricao: 'Cargas medias, obra leve e equipamentos.',
-          comprimentoM: 1.8, larguraM: 1.4, alturaM: 1.0, pesoMaxKg: 700,
-          valorHora: 78, servicos: para('utilitario')),
-      CategoriaVeiculo(id: 5, codigo: 'van', nome: 'Van',
-          descricao: 'Volume alto protegido da chuva.',
-          comprimentoM: 2.4, larguraM: 1.5, alturaM: 1.4, pesoMaxKg: 1000,
-          valorHora: 92, servicos: para('van')),
-      CategoriaVeiculo(id: 6, codigo: 'carreto', nome: 'Carreto',
-          descricao: 'Ideal para mudancas ou materiais grandes e pesados.',
-          comprimentoM: 3.0, larguraM: 1.8, alturaM: 2.0, pesoMaxKg: 1500,
-          valorHora: 110, servicos: para('carreto')),
-      CategoriaVeiculo(id: 7, codigo: 'caminhao_35', nome: 'Caminhao 3/4',
-          descricao: 'Cargas paletizadas e mudancas completas.',
-          comprimentoM: 4.5, larguraM: 2.1, alturaM: 2.2, pesoMaxKg: 3500,
-          valorHora: 160, servicos: para('caminhao_35')),
-      CategoriaVeiculo(id: 8, codigo: 'caminhao_75', nome: 'Caminhao Toco',
-          descricao: 'Carga fechada e transferencias entre cidades.',
-          comprimentoM: 6.0, larguraM: 2.4, alturaM: 2.5, pesoMaxKg: 7500,
-          valorHora: 220, servicos: para('caminhao_75')),
+      for (final e in veiculosConfig)
+        CategoriaVeiculo(
+          id: e.id,
+          codigo: e.codigo,
+          nome: e.nome,
+          descricao: e.descricao,
+          comprimentoM: e.comprimentoM,
+          larguraM: e.larguraM,
+          alturaM: e.alturaM,
+          pesoMaxKg: e.pesoMaxKg,
+          aceitaRefrigerada: e.aceitaRefrigerada,
+          aceitaPerigosa: e.aceitaPerigosa,
+          valorHora: _tarifas[e.codigo]!.$5,
+          servicos: para(e.codigo),
+        ),
     ];
 
     _enderecos.addAll(const [
@@ -124,7 +107,7 @@ class RepositorioMock implements Repositorio {
 
     _favoritos.add(const MotoristaFavorito(motoristaId: 1, nome: 'Jose Bezerra',
         telefone: '11977776666', avaliacao: 4.85, totalCorridas: 312,
-        disponivel: true, veiculos: 'Carreto'));
+        disponivel: true, veiculos: 'Van'));
 
     _transacoes.addAll([
       TransacaoCarteira(tipo: 'recarga', valor: 150, descricao: 'Recarga via Pix',
@@ -148,7 +131,8 @@ class RepositorioMock implements Repositorio {
         Parada(tipo: 'coleta', endereco: _enderecos[0], situacao: 'concluida'),
         Parada(tipo: 'entrega', endereco: _enderecos[2], situacao: 'concluida'),
       ],
-      carga: const Carga(tipoItem: 'outros', volumes: 1, faixaPeso: 'ate_50',
+      carga: const Carga(tipoCarga: 'caixas_pacotes', volumes: 1, pesoKg: 0.5,
+          comprimentoCm: 30, larguraCm: 22, alturaCm: 3,
           observacoes: 'Envelope com contratos'),
       eventos: [
         EventoPedido(situacao: 'cotado', descricao: 'Cotacao gerada',
@@ -165,7 +149,7 @@ class RepositorioMock implements Repositorio {
     // Pedido em transito de exemplo
     _pedidos.add(Pedido(
       id: 2, codigo: 'SF-000002', situacao: 'em_transito', nivelServico: 'padrao',
-      tipoRetirada: 'imediata', categoriaNome: 'Carreto', distanciaKm: 18.6,
+      tipoRetirada: 'imediata', categoriaNome: 'Van', distanciaKm: 18.6,
       valorFrete: 148.72, valorAdicionais: 70, valorTotal: 218.72,
       formaPagamento: 'pix',
       motoristaNome: 'Jose Bezerra', motoristaAvaliacao: 4.85, veiculoPlaca: 'ABC1D23',
@@ -174,8 +158,8 @@ class RepositorioMock implements Repositorio {
         Parada(tipo: 'coleta', endereco: _enderecos[0], situacao: 'concluida'),
         Parada(tipo: 'entrega', endereco: _enderecos[1]),
       ],
-      carga: const Carga(tipoItem: 'moveis_eletrodomesticos', volumes: 4,
-          faixaPeso: 'de_300_a_750', fragil: true,
+      carga: const Carga(tipoCarga: 'fragil', volumes: 4, pesoKg: 320,
+          comprimentoCm: 180, larguraCm: 90, alturaCm: 75, naoEmpilhar: true,
           observacoes: 'Uma mesa de vidro, favor nao empilhar'),
       servicos: const [
         ServicoAdicional(id: 1, codigo: 'ajuda_motorista',
@@ -332,13 +316,14 @@ class RepositorioMock implements Repositorio {
 
   static const _modelos = {
     'moto': 'Honda CG 160 Cargo',
-    'carro_hatch': 'Fiat Argo',
     'carro': 'Chevrolet Onix Plus',
-    'utilitario': 'Fiat Strada',
+    'utilitario': 'Fiat Fiorino',
     'van': 'Renault Master',
-    'carreto': 'Mercedes Sprinter Chassi',
-    'caminhao_35': 'Volkswagen Delivery 9.170',
-    'caminhao_75': 'Mercedes Accelo 1016',
+    'vuc': 'Volkswagen Delivery Express',
+    'caminhao_34': 'Volkswagen Delivery 9.170',
+    'caminhao_toco': 'Mercedes Accelo 1016',
+    'caminhao_truck': 'Volkswagen Constellation 24.280',
+    'carreta': 'Scania R 450 com carreta',
   };
 
   // Cada cotacao mostra ate 10 opcoes: 4 motoristas autonomos + 6 transportadoras.
@@ -375,7 +360,7 @@ class RepositorioMock implements Repositorio {
       }
     }
     lista.add(const _Parceiro(tipo: 'motorista', id: 1, nome: 'Jose Bezerra',
-        categoriaId: 6, lat: -23.5489, lng: -46.6388, raioKm: 40, fator: 1.0,
+        categoriaId: 4, lat: -23.5489, lng: -46.6388, raioKm: 40, fator: 1.0,
         nota: 4.85, fretes: 312));
     lista.add(const _Parceiro(tipo: 'motorista', id: 2, nome: 'Aline Souza',
         categoriaId: 1, lat: -23.5320, lng: -46.7920, raioKm: 40, fator: 1.0,
@@ -561,6 +546,16 @@ class RepositorioMock implements Repositorio {
     final horas = corpo['horasContratadas'] as int?;
     final cupom = corpo['cupom'] as String?;
     final chave = '${corpo['parceiroTipo']}-${corpo['parceiroId']}';
+
+    // mesma validacao da API (POST /pedidos): carga valida e compativel com o veiculo
+    final carga = corpo['carga'] as Carga?;
+    if (carga == null || validarCarga(carga).isNotEmpty) {
+      throw ErroApi('Preencha os detalhes da carga', 400);
+    }
+    final compat = verificarCompatibilidade(carga, categoria);
+    if (!compat.compativel) {
+      throw ErroApi('Carga incompativel com o veiculo escolhido: ${compat.motivo}', 422);
+    }
 
     final cotacao = _montarCotacao(
         categoriaId: categoriaId, paradas: paradas, servicos: servicosIds,

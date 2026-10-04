@@ -26,21 +26,34 @@ solus-frete/
 ├── db/                 esquema e dados iniciais do MySQL
 │   ├── 01_schema.sql   28 tabelas + 1 view
 │   └── 02_seed.sql     catálogo, preços, usuários, pedidos de exemplo e os parceiros
-│                       da cotação (42 motoristas autônomos e 11 transportadoras)
+│                       da cotação (47 motoristas autônomos e 11 transportadoras)
 ├── api/                API REST em Node + Express + MySQL
 │   ├── src/server.js   ponto de entrada
 │   ├── src/db.js       pool de conexões e helper de transação
 │   ├── src/precificacao.js  motor de cálculo do frete
 │   ├── src/ofertas.js  monta a cotação com os parceiros (4 motoristas + 6 transportadoras)
-│   └── src/routes/     auth, catalogo, cotacao, enderecos, pedidos, perfil
+│   ├── src/compatibilidade.js  valida a carga e confere se cabe no veículo
+│   ├── src/routes/     auth, catalogo, cotacao, enderecos, pedidos, perfil
+│   └── test/           testes da regra de compatibilidade (npm test)
 └── app/                aplicativo Flutter (cliente + cadastros de parceiro)
     ├── lib/
-    │   ├── core/       tema, formatação e widgets compartilhados
+    │   ├── core/       tema, formatação, veiculos_config.dart (especificações dos
+    │   │               veículos), compatibilidade.dart (regra da carga), ajuda_pedido.dart
+    │   │               (textos de ajuda) e widgets compartilhados — entre eles
+    │   │               widgets/ajuda.dart (botão e bottom sheet de ajuda) e
+    │   │               widgets/progresso_pedido.dart (indicador das 4 etapas do pedido)
     │   ├── modelos/    modelos de domínio
     │   ├── dados/      contrato de repositório + implementação mock e implementação API
     │   ├── estado/     Sessao e NovoPedido (Provider/ChangeNotifier)
-    │   └── telas/      16 telas do fluxo
-    └── test/           testes da cotação por parceiros (flutter test)
+    │   └── telas/      telas do fluxo — o pedido é feito em 4 etapas: local (mapa,
+    │                   telas/novo_pedido_tela.dart) → carga (telas/detalhes_carga.dart)
+    │                   → veículo e parceiro (telas/opcoes_frete.dart) → confirmar
+    │                   (telas/revisao.dart)
+    └── test/           testes da cotação, da compatibilidade, do catálogo de veículos,
+                        da tela de login e do fluxo de pedido (flutter test)
+
+docs/                   diagrama ER do banco (PNG, SVG e PDF)
+subir.sh                sobe o MySQL e a API e mostra as requisições em tempo real
 ```
 
 ## Como rodar
@@ -66,7 +79,7 @@ flutter run --dart-define=USAR_API=false
 
 Login de demonstração: telefone `11940135904`, senha `solus123` (já preenchidos na tela).
 
-Para rodar os testes da cotação: `flutter test`.
+Para rodar os testes do app: `flutter test`.
 
 ### 2. Com o MySQL e a API
 
@@ -95,6 +108,7 @@ npm install
 cp .env.example .env     # ajuste DB_HOST, DB_USER, DB_PASSWORD
 npm start                # http://localhost:3333
 curl http://localhost:3333/health
+npm test                 # testes da regra de compatibilidade da carga
 ```
 
 No protótipo, o parceiro escolhido pelo cliente aceita o pedido sozinho depois de alguns
@@ -143,31 +157,94 @@ a ideia é ativar a depuração USB e usar `adb reverse tcp:3333 tcp:3333` com
 `--dart-define=API_URL=http://localhost:3333`. Esse caminho ainda não foi testado num
 aparelho físico neste projeto.
 
+> Celular e computador na mesma Wi-Fi às vezes não se enxergam mesmo assim (roteadores
+> de operadora e redes mesh costumam isolar os aparelhos uns dos outros por padrão). Se
+> o app não conseguir falar com `API_URL=http://IP_DO_COMPUTADOR:3333`, o jeito mais
+> rápido de contornar é apontar para uma API hospedada na nuvem — veja a seção
+> [Na nuvem](#5-na-nuvem-opcional) a seguir — já que aí o celular funciona em qualquer
+> rede, inclusive dados móveis, sem depender da rede local.
+
 ### 4. Mapa
 
-O protótipo desenha um mapa esquemático em canvas (`MapaSimulado`), sem chave de API,
-para não quebrar na apresentação. Quando quiserem o Google Maps de verdade: adicione
-`google_maps_flutter` ao `pubspec.yaml`, configure a chave no Android e no iOS, troque
-`Config.usarMapaReal` para `true` e substitua o widget `MapaSimulado` por `GoogleMap`
-nas três telas que o usam (novo pedido, detalhes do endereço e acompanhamento).
+O protótipo usa mapa real com tiles do **OpenStreetMap** (`flutter_map` + `latlong2`),
+sem chave de API nem cartão de crédito. O widget `MapaSimulado`
+(`app/lib/core/widgets/comuns.dart`) mostra os pontos do roteiro com marcadores (coleta
+em azul, entregas em laranja), liga-os com uma linha e, na tela de acompanhamento, anima
+a posição do veículo ao longo da rota. É usado nas telas de novo pedido, detalhes do
+endereço, veículo e parceiro, e acompanhamento.
+
+Por ser o serviço público de tiles do OpenStreetMap, vale a [política de uso
+aceitável](https://operations.osmfoundation.org/policies/tiles/) deles — adequada para
+desenvolvimento e apresentação, mas não para um volume grande de usuários em produção.
+Para isso, o caminho é trocar a `urlTemplate` do `TileLayer` por um provedor de tiles
+próprio ou pago (Mapbox, MapTiler, Stadia Maps etc.).
+
+A busca de endereço ainda usa a lista de endereços cadastrados (favoritos, recentes e
+busca textual simples) e não faz geocodificação real; esse é um próximo passo natural,
+usando por exemplo o [Nominatim](https://nominatim.org/) do próprio OpenStreetMap.
+
+### 5. Na nuvem (opcional)
+
+Para testar no celular sem depender da mesma rede do computador (inclusive em dados
+móveis), dá pra hospedar a API e o MySQL gratuitamente no [Railway](https://railway.com):
+
+```bash
+brew install railway        # ou: npm i -g @railway/cli
+railway login
+railway init --name solus-frete
+railway add --database mysql
+
+cd api
+railway add --service api
+railway variable set DB_HOST='${{MySQL.MYSQLHOST}}' --service api --skip-deploys
+railway variable set DB_PORT='${{MySQL.MYSQLPORT}}' --service api --skip-deploys
+railway variable set DB_USER='${{MySQL.MYSQLUSER}}' --service api --skip-deploys
+railway variable set DB_PASSWORD='${{MySQL.MYSQLPASSWORD}}' --service api --skip-deploys
+railway variable set DB_NAME='${{MySQL.MYSQLDATABASE}}' --service api --skip-deploys
+railway variable set JWT_SECRET="$(openssl rand -hex 32)" --service api --skip-deploys
+railway up --service api -y            # faz o deploy a partir da pasta api/
+railway domain --service api            # gera a URL pública (https://...up.railway.app)
+```
+
+O `01_schema.sql` cria o próprio banco `solus_frete` (não usa o banco `railway` padrão
+do plugin), então depois de criar o serviço MySQL é preciso **trocar o `DB_NAME` para
+`solus_frete`** e carregar o schema e o seed nele — abra uma porta pública temporária
+para isso (`railway tcp-proxy create --port 3306 --service MySQL`), rode os dois
+`mysql ... < db/0X_*.sql` apontando pro endereço que o comando devolver, e depois feche
+a porta (`railway tcp-proxy delete`).
+
+Com a URL gerada, aponte o app pra ela: `flutter run --release
+--dart-define=API_URL=https://SUA-URL.up.railway.app --dart-define=USAR_API=true`.
+
+> O plano usado por padrão no Railway é um **trial gratuito por tempo limitado** — serve
+> bem para testes e apresentação, mas não é hospedagem permanente. Para manter a API no
+> ar indefinidamente, é preciso assinar um plano pago (o mais simples gira em torno de
+> alguns dólares por mês).
 
 ## Fluxos implementados
 
 **Cliente**: login e cadastro; busca de endereço com favoritos, recentes e complemento
 com contato no local; roteiro com múltiplas paradas e inversão de sentido; retirada
-imediata ou agendada; catálogo de veículos com ficha técnica (dimensões, capacidade e
-serviços disponíveis); serviços adicionais por categoria; contratação por período (4h,
-6h, 8h); detalhes da carga com tipo, volumes, faixa de peso e instruções de manuseio;
-cotação com até 10 parceiros da região (4 motoristas autônomos e 6 transportadoras), com
-filtro por tipo, ordenação por preço, prazo e avaliação e detalhamento do preço; escolha
-do parceiro, que aceita ou recusa o pedido (simulado no protótipo) e, se recusar, o
-cliente volta à lista para escolher outro; cupom de desconto; motoristas favoritos com
-destaque na lista; exigência de comprovante de entrega; pagamento
+imediata ou agendada. O pedido é feito em 4 etapas com indicador de progresso (local →
+carga → veículo → confirmar): detalhes da carga (peso total, dimensões do maior volume,
+quantidade de volumes, tipo e observações) são informados antes de escolher o veículo,
+com validação dos campos; catálogo de veículos com ficha técnica (dimensões, capacidade e
+serviços disponíveis); veículos que não comportam a carga aparecem desabilitados com o
+motivo, e o veículo já escolhido é desmarcado se uma alteração na carga o tornar
+incompatível; o menor veículo que ainda comporta a carga é destacado como recomendado
+(borda e selo animados); serviços adicionais por categoria; contratação por período (4h,
+6h, 8h); botão de ajuda em destaque e ícones "i" por seção com dicas para quem nunca usou
+a plataforma; cotação com até 10 parceiros da região (4 motoristas autônomos e 6
+transportadoras), com filtro por tipo, ordenação por preço, prazo e avaliação e
+detalhamento do preço; escolha do parceiro, que aceita ou recusa o pedido (simulado no
+protótipo) e, se recusar, o cliente volta à lista para escolher outro; cupom de desconto;
+motoristas favoritos com destaque na lista; exigência de comprovante de entrega; pagamento
 por carteira, Pix, cartão ou dinheiro com escolha do pagador (frete a pagar); revisão e
-confirmação; acompanhamento com mapa, linha do tempo e dados do parceiro; simulação da
-máquina de estados; cancelamento com regra de taxa por etapa; avaliação com opção de
-favoritar; histórico com abas e busca; motoristas favoritos com convite por telefone;
-carteira com saldo, recarga e extrato; caixa de entrada; perfil e preferências.
+confirmação; acompanhamento com mapa real (OpenStreetMap), linha do tempo e dados do
+parceiro; simulação da máquina de estados; cancelamento com regra de taxa por etapa;
+avaliação com opção de favoritar; histórico com abas, busca e nome do parceiro; motoristas
+favoritos com convite por telefone; carteira com saldo, recarga e extrato; caixa de
+entrada; perfil e preferências.
 
 **Parceiros**: cadastro de motorista em três passos (dados pessoais, habilitação com
 validade e anexo, veículo com categoria e documento) e cadastro de transportadora em
@@ -185,12 +262,12 @@ Situação de cada história de usuário do backlog no protótipo:
 | US03 | Cadastro de transportadora | Parcial | Faltam validação do CNPJ, token e consentimento LGPD. Os anexos são simulados |
 | US04 | Cadastro de motorista parceiro | Parcial | Faltam token, consentimento LGPD e o vínculo com uma transportadora. Os anexos são simulados |
 | US05 | Solicitação do frete | Implementada | Imediato ou agendado, roteiro, carga, estimativa, revisão e status |
-| US06 | Dados da carga | Parcial | Tipo, volumes, faixa de peso e instruções de manuseio. Não há dimensões nem nível de fragilidade |
-| US07 | Origem e destino | Parcial | Busca de endereço e distância; a coleta define o raio dos parceiros. Faltam validação por CEP e escolha no mapa |
+| US06 | Dados da carga | Parcial | Peso, dimensões do maior volume, volumes, tipo (inclui frágil, refrigerada e perigosa), observações e validação dos campos. Faltam o nível de fragilidade e o destaque da carga perigosa para o parceiro |
+| US07 | Origem e destino | Parcial | Busca de endereço e distância; a coleta define o raio dos parceiros; mapa real (OpenStreetMap). Faltam validação por CEP, geocodificação de endereço digitado livremente e escolha arrastando o pino no mapa |
 | US08 | Consulta e comparação de cotações | Implementada | 10 parceiros, filtro e ordenação; se o parceiro recusa, volta à lista |
 | US09 | Consulta de avaliação | Parcial | Nota, total de fretes e "Sem avaliações ainda". Faltam os comentários e o perfil do parceiro |
 | US10 | Comunicação (chat) | Não implementada | |
-| US11 | Acompanhamento do frete | Parcial | Status e linha do tempo simulados; o mapa é esquemático, sem localização em tempo real |
+| US11 | Acompanhamento do frete | Parcial | Status e linha do tempo simulados; mapa real (OpenStreetMap) com a posição do veículo interpolada ao longo da rota, mas sem localização em tempo real de verdade |
 | US12 | Demanda de fretes (transportadora) | Não implementada | Lado do parceiro fora do escopo do protótipo |
 | US13 | Gestão de frota e motoristas | Não implementada | A frota vem só do cadastro e do seed |
 | US14 | Ganhos da transportadora | Não implementada | |
@@ -199,12 +276,40 @@ Situação de cada história de usuário do backlog no protótipo:
 
 Fora do escopo (Won't): IA no canal de chat e nas rotas.
 
+## Veículos
+
+O catálogo tem 9 categorias. Moto e Carro ficam para uma possível expansão do negócio,
+embora as capacidades pequenas deixem poucas cargas caberem neles. As especificações ficam em
+`app/lib/core/veiculos_config.dart` (usadas pelo app no modo sem backend e pelos testes) e,
+com a API, na tabela `categoria_veiculo` do `db/02_seed.sql`; o teste
+`test/veiculos_config_test.dart` confere que os dois continuam iguais.
+
+| Veículo | Capacidade | Baú (C × L × A, m) | Volume | Refrigerada | Perigosa |
+|---|---|---|---|---|---|
+| Moto | 20 kg | 0,40 × 0,35 × 0,30 | 0,04 m³ | não | não |
+| Carro | 200 kg | 1,20 × 0,90 × 0,70 | 0,76 m³ | não | não |
+| Utilitário | 650 kg | 1,90 × 1,30 × 1,20 | 2,96 m³ | não | não |
+| Van | 1.500 kg | 3,00 × 1,70 × 1,80 | 9,18 m³ | não | não |
+| VUC | 3.000 kg | 4,50 × 2,10 × 2,20 | 20,79 m³ | sim | não |
+| Caminhão 3/4 | 4.000 kg | 5,50 × 2,30 × 2,40 | 30,36 m³ | sim | não |
+| Caminhão toco | 6.000 kg | 7,00 × 2,40 × 2,60 | 43,68 m³ | sim | sim |
+| Caminhão truck | 12.000 kg | 8,50 × 2,40 × 2,70 | 55,08 m³ | sim | sim |
+| Carreta | 25.000 kg | 14,00 × 2,50 × 2,80 | 98,00 m³ | sim | sim |
+
+Para ajustar um veículo ou adicionar outro: edite `veiculos_config.dart`, o `INSERT` de
+`categoria_veiculo` e o preço (`tabela_preco` no seed e `_tarifas` no `RepositorioMock`).
+Se o código for novo, acrescente também os modelos dos parceiros (`tmp_modelo` no seed e
+`_modelos` no mock). O seed falha de propósito se uma categoria ficar sem preço, em vez de
+herdar o de outra. Depois recarregue o banco (`01_schema.sql` e `02_seed.sql`).
+
 ## Regras de negócio no código
 
 | Regra | Onde está |
 |---|---|
-| Pedido só confirma com roteiro, veículo e forma de pagamento | `NovoPedido.pendenciasParaConfirmar` e `routes/pedidos.js` |
-| Peso declarado não pode exceder a capacidade do veículo | `NovoPedido.avisoCapacidade` e validação HTTP 422 na API |
+| Pedido só confirma com roteiro, carga preenchida, veículo e forma de pagamento | `NovoPedido.pendenciasParaConfirmar` e `routes/pedidos.js` |
+| Peso, dimensões e tipo da carga precisam ser válidos (maiores que zero) | `validarCarga` em `core/compatibilidade.dart` e `api/src/compatibilidade.js` (HTTP 400 na API) |
+| A carga precisa caber no veículo: peso total ≤ capacidade, maior volume dentro do baú (podendo ser girado) e tipo aceito (refrigerada e perigosa só em veículo habilitado) | `verificarCompatibilidade` em `core/compatibilidade.dart` e `api/src/compatibilidade.js` (HTTP 422 na API) |
+| Veículo incompatível fica desabilitado com o motivo; se a carga mudar, o veículo escolhido é desmarcado | `NovoPedido.definirCarga` e `telas/opcoes_frete.dart` |
 | Agendamento precisa ser no futuro | `NovoPedido` e `routes/pedidos.js` |
 | Aceite de itens proibidos obrigatório | `TelaRevisao` e `routes/pedidos.js` |
 | A cotação mostra até 10 parceiros: 4 motoristas autônomos e 6 transportadoras (se faltar de um tipo, completa com o outro) | `api/src/ofertas.js` (`selecionar`) e `RepositorioMock._montarCotacao` |
@@ -230,9 +335,11 @@ respeitando o valor mínimo da categoria.
 - O prazo estimado soma o deslocamento do parceiro até a coleta, o trajeto e 15 minutos
   de manuseio, a uma média de 30 km/h.
 
-Na mesma rota testada no aplicativo de referência (Osasco → Avenida Paulista, carreto) o
-preço `padrão` ficou em R$ 155,64 contra R$ 152,68 do concorrente — ou seja, a estrutura
-de preço reproduz a ordem de grandeza do mercado.
+A calibragem original foi feita com a categoria Carreto, que saiu do catálogo: na rota
+Osasco → Avenida Paulista o preço `padrão` ficou em R$ 155,64 contra R$ 152,68 do
+concorrente, ou seja, a estrutura de preço reproduz a ordem de grandeza do mercado. Os
+preços das categorias novas (VUC, caminhão truck e carreta) seguem a mesma escala, mas
+são valores de protótipo e não foram comparados com o mercado.
 
 Isso é calibragem de protótipo, não precificação de negócio. A tabela definitiva precisa
 partir de custo operacional próprio e da comissão que vocês decidirem praticar; os dois
@@ -303,7 +410,11 @@ obtido no login. Senha de todos os usuários do seed: `solus123`.
 }
 ```
 
-`POST /pedidos` recebe `parceiroTipo` (`motorista` ou `transportadora`) e `parceiroId` no
+`POST /pedidos` recebe a carga em `carga`: `tipoCarga` (`caixas_pacotes`, `paletizada`,
+`granel`, `fragil`, `refrigerada` ou `perigosa`), `pesoKg`, `comprimentoCm`, `larguraCm`,
+`alturaCm` (do maior volume), `volumes` e, opcionais, `naoEmpilhar` e `observacoes`. Campo
+ausente ou menor ou igual a zero devolve 400; carga que não cabe no veículo devolve 422 com o
+`motivo` (por exemplo, "Excede a capacidade de 1.500 kg"). Além da carga, recebe `parceiroTipo` (`motorista` ou `transportadora`) e `parceiroId` no
 lugar do antigo nível de serviço. O pedido nasce em `aguardando_alocacao` e segue só para
 o parceiro escolhido. `POST /pedidos/:id/recusar-parceiro` existe apenas no protótipo, para
 simular a recusa; o pedido volta a `cotado`, `GET /pedidos/:id/cotacao` traz as opções

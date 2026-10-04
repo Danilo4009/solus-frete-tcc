@@ -36,7 +36,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
   final _razao = TextEditingController();
   final _fantasia = TextEditingController();
   final _antt = TextEditingController();
-  final _cidade = TextEditingController(text: 'Sao Paulo');
+  final _cidade = TextEditingController(text: 'São Paulo');
   final _uf = TextEditingController(text: 'SP');
   final _telEmpresa = TextEditingController();
   final _emailEmpresa = TextEditingController();
@@ -94,7 +94,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
   Future<void> _adicionarVeiculo() async {
     final catalogo = context.read<NovoPedido>().catalogo;
     if (catalogo.isEmpty) {
-      _avisar('Catalogo de veiculos ainda carregando');
+      _avisar('Catálogo de veículos ainda carregando');
       return;
     }
     CategoriaVeiculo selecionada = catalogo.first;
@@ -112,7 +112,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const TituloSecao('Adicionar veiculo a frota'),
+              const TituloSecao('Adicionar veículo à frota'),
               DropdownButtonFormField<CategoriaVeiculo>(
                 value: selecionada,
                 decoration: const InputDecoration(labelText: 'Categoria'),
@@ -175,7 +175,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
 
   Future<void> _finalizar() async {
     if (_frota.isEmpty) {
-      _avisar('Cadastre ao menos um veiculo da frota');
+      _avisar('Cadastre ao menos um veículo da frota');
       return;
     }
     if (!_aceite) {
@@ -212,7 +212,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
 
     if (!mounted) return;
     if (mensagem == null) {
-      _avisar(sessao.erro ?? 'Nao foi possivel enviar o cadastro');
+      _avisar(sessao.erro ?? 'Não foi possível enviar o cadastro');
       return;
     }
     await showDialog<void>(
@@ -242,7 +242,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
         children: [
           PassosIndicador(
             atual: _passo,
-            rotulos: const ['Empresa', 'Responsavel', 'Frota'],
+            rotulos: const ['Empresa', 'Responsável', 'Frota'],
           ),
           Expanded(
             child: IndexedStack(
@@ -268,7 +268,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                     child: FilledButton(
                       onPressed: carregando ? null : _avancar,
                       child: Text(_passo == 2
-                          ? (carregando ? 'Enviando...' : 'Enviar para analise')
+                          ? (carregando ? 'Enviando...' : 'Enviar para análise')
                           : 'Continuar'),
                     ),
                   ),
@@ -298,16 +298,16 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                         labelText: 'CNPJ *', hintText: '00.000.000/0000-00'),
                     validator: (v) {
                       final d = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                      return d.length != 14 ? 'CNPJ deve ter 14 digitos' : null;
+                      return d.length != 14 ? 'CNPJ deve ter 14 dígitos' : null;
                     },
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
                     controller: _razao,
                     textCapitalization: TextCapitalization.words,
-                    decoration: const InputDecoration(labelText: 'Razao social *'),
+                    decoration: const InputDecoration(labelText: 'Razão social *'),
                     validator: (v) =>
-                        (v == null || v.trim().length < 3) ? 'Informe a razao social' : null,
+                        (v == null || v.trim().length < 3) ? 'Informe a razão social' : null,
                   ),
                   const SizedBox(height: 12),
                   TextFormField(
@@ -361,7 +361,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                   TextFormField(
                     controller: _emailEmpresa,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(labelText: 'E-mail da operacao'),
+                    decoration: const InputDecoration(labelText: 'E-mail da operação'),
                   ),
                 ],
               ),
@@ -399,7 +399,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const TituloSecao('Responsavel pela conta'),
+                  const TituloSecao('Responsável pela conta'),
                   const Text(
                     'Esta pessoa vai aceitar cargas e designar motoristas da frota.',
                     style: TextStyle(fontSize: 12.5, color: Cores.textoFraco),
@@ -426,7 +426,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                         labelText: 'Celular *', prefixText: '+55 '),
                     validator: (v) {
                       final d = (v ?? '').replaceAll(RegExp(r'\D'), '');
-                      return d.length < 10 ? 'Informe DDD e numero' : null;
+                      return d.length < 10 ? 'Informe DDD e número' : null;
                     },
                   ),
                   const SizedBox(height: 12),
@@ -435,7 +435,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(labelText: 'E-mail *'),
                     validator: (v) => (v == null || !v.contains('@'))
-                        ? 'Informe um e-mail valido'
+                        ? 'Informe um e-mail válido'
                         : null,
                   ),
                   const SizedBox(height: 12),
@@ -444,7 +444,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Senha *'),
                     validator: (v) =>
-                        (v == null || v.length < 6) ? 'Minimo de 6 caracteres' : null,
+                        (v == null || v.length < 6) ? 'Mínimo de 6 caracteres' : null,
                   ),
                 ],
               ),
@@ -472,8 +472,8 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 20),
                     child: Text(
-                      'Cadastre os veiculos que a transportadora vai disponibilizar. '
-                      'Voce podera vincular motoristas a cada veiculo depois da homologacao.',
+                      'Cadastre os veículos que a transportadora vai disponibilizar. '
+                      'Você poderá vincular motoristas a cada veículo depois da homologação.',
                       style: TextStyle(color: Cores.textoFraco, fontSize: 13),
                     ),
                   )
@@ -486,8 +486,8 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
                       title: Text(_frota[i].categoria.nome),
                       subtitle: Text(
                         '${_frota[i].placa.isEmpty ? 'Placa a definir' : _frota[i].placa}'
-                        ' - ${_frota[i].quantidade} veiculo(s)'
-                        ' - ate ${_frota[i].categoria.pesoMaxKg} kg',
+                        ' - ${_frota[i].quantidade} veículo(s)'
+                        ' - até ${_frota[i].categoria.pesoMaxKg} kg',
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete_outline, color: Cores.alerta),
@@ -504,9 +504,9 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
               children: [
                 const TituloSecao('Como funciona'),
                 const Text(
-                  'Cargas compativeis com sua frota sao ofertadas a empresa. '
-                  'Voce aceita em nome da transportadora e depois designa qual motorista '
-                  'vai executar. O repasse e consolidado no CNPJ da empresa.',
+                  'Cargas compatíveis com sua frota são ofertadas à empresa. '
+                  'Você aceita em nome da transportadora e depois designa qual motorista '
+                  'vai executar. O repasse é consolidado no CNPJ da empresa.',
                   style: TextStyle(fontSize: 13, height: 1.45, color: Cores.textoFraco),
                 ),
               ],
@@ -520,7 +520,7 @@ class _TelaCadastroTransportadoraState extends State<TelaCadastroTransportadora>
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               title: const Text(
-                'Declaro que as informacoes e documentos sao verdadeiros e aceito os termos de parceria do Solus Frete.',
+                'Declaro que as informações e documentos são verdadeiros e aceito os termos de parceria do Solus Frete.',
                 style: TextStyle(fontSize: 13),
               ),
             ),

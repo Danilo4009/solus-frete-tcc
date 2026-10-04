@@ -8,7 +8,7 @@ router.get('/veiculos', async (req, res) => {
   const cidade = req.query.cidade || 'Sao Paulo';
   const veiculos = await query(
     `SELECT c.id, c.codigo, c.nome, c.descricao, c.comprimento_m, c.largura_m, c.altura_m,
-            c.peso_max_kg, c.ordem,
+            c.peso_max_kg, c.aceita_refrigerada, c.aceita_perigosa, c.ordem,
             MAX(CASE WHEN p.nivel_servico='padrao'    THEN p.tarifa_base END)  AS tarifa_base,
             MAX(CASE WHEN p.nivel_servico='padrao'    THEN p.valor_por_km END) AS valor_por_km,
             MAX(CASE WHEN p.nivel_servico='padrao'    THEN p.valor_minimo END) AS valor_minimo,
