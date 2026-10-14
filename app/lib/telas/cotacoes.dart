@@ -423,7 +423,7 @@ void mostrarDetalhePreco(BuildContext context, OfertaParceiro oferta, List<Strin
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const TituloSecao('Detalhes do preco'),
+            const TituloSecao('Detalhes do preço'),
             linha(oferta.rotuloTipo, oferta.nome),
             linha('Taxa de entrega', moeda(oferta.valorFrete)),
             if (oferta.valorAdicionais > 0)

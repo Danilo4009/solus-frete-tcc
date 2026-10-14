@@ -105,7 +105,7 @@ class _TelaAcompanhamentoState extends State<TelaAcompanhamento> {
       });
       _ajustarAtualizacao();
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('O parceiro recusou o pedido. Escolha outra opcao.'),
+        content: Text('O parceiro recusou o pedido. Escolha outra opção.'),
       ));
       await _escolherOutro();
     } catch (e) {
