@@ -52,11 +52,11 @@ async function montarCotacao({
   cidade = 'Sao Paulo', categoriaId, paradas = [], servicos = [], horas, cupom,
   clienteId, excluir = [],
 }) {
-  if (!categoriaId) throw erroHttp(400, 'Informe a categoria do veiculo');
+  if (!categoriaId) throw erroHttp(400, 'Informe a categoria do veículo');
   if (paradas.length < 2) throw erroHttp(400, 'Informe ao menos uma coleta e uma entrega');
 
   const categoria = await one('SELECT * FROM categoria_veiculo WHERE id = ? AND ativo = 1', [categoriaId]);
-  if (!categoria) throw erroHttp(404, 'Categoria nao encontrada');
+  if (!categoria) throw erroHttp(404, 'Categoria não encontrada');
 
   const precoPlataforma = await one(
     `SELECT * FROM tabela_preco
@@ -64,7 +64,7 @@ async function montarCotacao({
       ORDER BY vigente_desde DESC LIMIT 1`,
     [cidade, categoriaId]
   );
-  if (!precoPlataforma) throw erroHttp(404, 'Sem tabela de preco para esta cidade e veiculo');
+  if (!precoPlataforma) throw erroHttp(404, 'Sem tabela de preço para esta cidade e veículo');
 
   const km = distanciaRota(paradas);
   const coleta = paradas[0];

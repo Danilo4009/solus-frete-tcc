@@ -106,8 +106,8 @@ async function aceiteAutomatico(pedidoId) {
 // Dados para refazer a cotacao de um pedido que voltou a 'cotado' (parceiro recusou).
 async function contextoDeCotacao(pedidoId, usuarioId) {
   const pedido = await one('SELECT * FROM pedido WHERE id = ? AND cliente_id = ?', [pedidoId, usuarioId]);
-  if (!pedido) throw erroHttp(404, 'Pedido nao encontrado');
-  if (pedido.situacao !== 'cotado') throw erroHttp(409, 'Este pedido nao esta aguardando a escolha de um parceiro');
+  if (!pedido) throw erroHttp(404, 'Pedido não encontrado');
+  if (pedido.situacao !== 'cotado') throw erroHttp(409, 'Este pedido não está aguardando a escolha de um parceiro');
 
   const paradas = await query(
     'SELECT tipo, latitude, longitude FROM pedido_parada WHERE pedido_id = ? ORDER BY sequencia', [pedidoId]);
@@ -141,7 +141,7 @@ async function contextoDeCotacao(pedidoId, usuarioId) {
 function localizarEscolhido(resultado, parceiroTipo, parceiroId) {
   const escolhido = [...resultado.motoristas, ...resultado.transportadoras]
     .find((o) => o.parceiroTipo === parceiroTipo && o.parceiroId === Number(parceiroId));
-  if (!escolhido) throw erroHttp(422, 'Este parceiro nao esta mais disponivel. Escolha outra opcao.');
+  if (!escolhido) throw erroHttp(422, 'Este parceiro não está mais disponível. Escolha outra opção.');
   return escolhido;
 }
 
@@ -187,7 +187,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', rota(async (req, res) => {
   await aceiteAutomatico(req.params.id);
   const pedido = await carregarPedido(req.params.id);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
   if (pedido.cliente_id !== req.usuario.id && req.usuario.tipo === 'cliente_pf') {
     return res.status(403).json({ erro: 'Sem acesso a este pedido' });
   }
@@ -214,11 +214,11 @@ router.post('/', rota(async (req, res) => {
   } = req.body || {};
 
   // --- validacoes (regras RN01, RN02, RN04, RN10) ---
-  if (!categoriaId) throw erroHttp(400, 'Selecione o veiculo');
+  if (!categoriaId) throw erroHttp(400, 'Selecione o veículo');
   if (paradas.length < 2) throw erroHttp(400, 'Informe coleta e entrega');
   if (!parceiroTipo || !parceiroId) throw erroHttp(400, 'Escolha um parceiro');
   if (!formaPagamento) throw erroHttp(400, 'Selecione a forma de pagamento');
-  if (!aceiteItensProibidos) throw erroHttp(400, 'E necessario aceitar a politica de itens proibidos');
+  if (!aceiteItensProibidos) throw erroHttp(400, 'É necessário aceitar a política de itens proibidos');
   if (tipoRetirada === 'agendada' && !agendadoPara) {
     throw erroHttp(400, 'Informe a data e hora do agendamento');
   }
@@ -227,7 +227,7 @@ router.post('/', rota(async (req, res) => {
   }
 
   const categoria = await one('SELECT * FROM categoria_veiculo WHERE id = ?', [categoriaId]);
-  if (!categoria) throw erroHttp(404, 'Categoria nao encontrada');
+  if (!categoria) throw erroHttp(404, 'Categoria não encontrada');
 
   // --- carga: campos validos e compativel com o veiculo (RN02) ---
   const errosCarga = validarCarga(carga);
@@ -236,7 +236,7 @@ router.post('/', rota(async (req, res) => {
   const compat = verificarCompatibilidade(carga, categoria);
   if (!compat.compativel) {
     return res.status(422).json({
-      erro: 'Carga incompativel com o veiculo escolhido',
+      erro: 'Carga incompatível com o veículo escolhido',
       motivo: compat.motivo,
       capacidadeKg: categoria.peso_max_kg,
       sugestao: 'Escolha outro veiculo',
@@ -328,10 +328,10 @@ router.post('/', rota(async (req, res) => {
 // POST /pedidos/:id/recusar-parceiro  -> simula a recusa do parceiro (so no prototipo)
 router.post('/:id/recusar-parceiro', rota(async (req, res) => {
   const pedido = await one('SELECT * FROM pedido WHERE id = ? AND cliente_id = ?', [req.params.id, req.usuario.id]);
-  if (!pedido) throw erroHttp(404, 'Pedido nao encontrado');
+  if (!pedido) throw erroHttp(404, 'Pedido não encontrado');
   const oferta = await one("SELECT * FROM oferta WHERE pedido_id = ? AND situacao = 'enviada' LIMIT 1", [pedido.id]);
   if (pedido.situacao !== 'aguardando_alocacao' || !oferta) {
-    throw erroHttp(409, 'So e possivel simular a recusa enquanto o parceiro ainda nao aceitou');
+    throw erroHttp(409, 'Só é possível simular a recusa enquanto o parceiro ainda não aceitou');
   }
   const nome = await nomeParceiro(oferta);
 
@@ -377,16 +377,16 @@ router.post('/:id/parceiro', rota(async (req, res) => {
 const FLUXO = ['aguardando_alocacao', 'alocado', 'em_deslocamento_coleta', 'carregando', 'em_transito', 'entregue', 'concluido'];
 router.post('/:id/avancar', rota(async (req, res) => {
   const pedido = await one('SELECT * FROM pedido WHERE id = ?', [req.params.id]);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
   if (pedido.situacao === 'cancelado' || pedido.situacao === 'concluido') {
     return res.status(409).json({ erro: 'Pedido finalizado' });
   }
   if (pedido.situacao === 'cotado') {
-    return res.status(409).json({ erro: 'Escolha um parceiro antes de avancar o pedido' });
+    return res.status(409).json({ erro: 'Escolha um parceiro antes de avançar o pedido' });
   }
   const atual = FLUXO.indexOf(pedido.situacao);
   const proxima = FLUXO[atual + 1];
-  if (!proxima) return res.status(409).json({ erro: 'Nao ha proxima etapa' });
+  if (!proxima) return res.status(409).json({ erro: 'Não há próxima etapa' });
 
   await transacao(async (conn) => {
     if (proxima === 'alocado') {
@@ -421,9 +421,9 @@ router.post('/:id/avancar', rota(async (req, res) => {
 // POST /pedidos/:id/cancelar  (RN06)
 router.post('/:id/cancelar', async (req, res) => {
   const pedido = await one('SELECT * FROM pedido WHERE id = ?', [req.params.id]);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
   if (['em_transito', 'entregue', 'concluido'].includes(pedido.situacao)) {
-    return res.status(409).json({ erro: 'Pedido ja coletado nao pode ser cancelado. Registre uma ocorrencia.' });
+    return res.status(409).json({ erro: 'Pedido já coletado não pode ser cancelado. Registre uma ocorrência.' });
   }
   const taxa = ['alocado', 'em_deslocamento_coleta', 'carregando'].includes(pedido.situacao)
     ? Math.round(Number(pedido.valor_total) * 0.15 * 100) / 100
@@ -450,8 +450,8 @@ router.post('/:id/avaliar', async (req, res) => {
   const pedido = await one(
     `SELECT p.*, m.usuario_id AS motorista_usuario_id FROM pedido p
        LEFT JOIN motorista m ON m.id = p.motorista_id WHERE p.id = ?`, [req.params.id]);
-  if (!pedido) return res.status(404).json({ erro: 'Pedido nao encontrado' });
-  if (pedido.situacao !== 'concluido') return res.status(409).json({ erro: 'Avalie apenas pedidos concluidos' });
+  if (!pedido) return res.status(404).json({ erro: 'Pedido não encontrado' });
+  if (pedido.situacao !== 'concluido') return res.status(409).json({ erro: 'Avalie apenas pedidos concluídos' });
 
   await transacao(async (conn) => {
     // avaliado e o motorista; quando o frete foi feito por transportadora, a propria empresa

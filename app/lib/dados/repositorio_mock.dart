@@ -554,7 +554,7 @@ class RepositorioMock implements Repositorio {
     }
     final compat = verificarCompatibilidade(carga, categoria);
     if (!compat.compativel) {
-      throw ErroApi('Carga incompativel com o veiculo escolhido: ${compat.motivo}', 422);
+      throw ErroApi('Carga incompatível com o veículo escolhido: ${compat.motivo}', 422);
     }
 
     final cotacao = _montarCotacao(
@@ -562,7 +562,7 @@ class RepositorioMock implements Repositorio {
         horas: horas, cupom: cupom);
     final oferta = cotacao.ofertas.where((o) => o.chave == chave).firstOrNull;
     if (oferta == null) {
-      throw ErroApi('Este parceiro nao esta mais disponivel. Escolha outra opcao.', 422);
+      throw ErroApi('Este parceiro não está mais disponível. Escolha outra opção.', 422);
     }
 
     final id = ++_proximoId;
@@ -703,7 +703,7 @@ class RepositorioMock implements Repositorio {
     final ctx = _contextos[id];
     final pedido = _pedidos.firstWhere((p) => p.id == id);
     if (ctx == null || !pedido.aguardandoEscolha) {
-      throw ErroApi('Este pedido nao esta aguardando a escolha de um parceiro', 409);
+      throw ErroApi('Este pedido não está aguardando a escolha de um parceiro', 409);
     }
     return _demora(_montarCotacao(
       categoriaId: ctx.categoriaId, paradas: ctx.paradas, servicos: ctx.servicos,
@@ -717,7 +717,7 @@ class RepositorioMock implements Repositorio {
     final atual = _pedidos[indice];
     final ctx = _contextos[id];
     if (!atual.aguardandoAceite || atual.parceiroNome == null || ctx == null) {
-      throw ErroApi('So e possivel simular a recusa enquanto o parceiro ainda nao aceitou', 409);
+      throw ErroApi('Só é possível simular a recusa enquanto o parceiro ainda não aceitou', 409);
     }
     final agora = DateTime.now();
     final nome = atual.parceiroNome!;
@@ -747,7 +747,7 @@ class RepositorioMock implements Repositorio {
     final atual = _pedidos[indice];
     final ctx = _contextos[id];
     if (!atual.aguardandoEscolha || ctx == null) {
-      throw ErroApi('Este pedido nao esta aguardando a escolha de um parceiro', 409);
+      throw ErroApi('Este pedido não está aguardando a escolha de um parceiro', 409);
     }
     // recalcula: o preco nunca vem da tela
     final nova = _montarCotacao(
@@ -755,7 +755,7 @@ class RepositorioMock implements Repositorio {
       horas: ctx.horas, cupom: ctx.cupom, excluir: ctx.recusados,
     ).ofertas.where((o) => o.chave == oferta.chave).firstOrNull;
     if (nova == null) {
-      throw ErroApi('Este parceiro nao esta mais disponivel. Escolha outra opcao.', 422);
+      throw ErroApi('Este parceiro não está mais disponível. Escolha outra opção.', 422);
     }
 
     final agora = DateTime.now();
