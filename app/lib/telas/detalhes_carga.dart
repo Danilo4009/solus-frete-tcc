@@ -12,9 +12,9 @@ import '../estado/novo_pedido.dart';
 import '../modelos/modelos.dart';
 import 'opcoes_frete.dart';
 
-/// Peso, dimensoes do maior volume, quantidade de volumes, tipo e observacoes da carga.
-/// No fluxo do pedido vem antes da escolha do veiculo ([etapaDoFluxo]); cada alteracao
-/// atualiza o rascunho na hora, e a lista de veiculos da proxima etapa reage.
+/// Peso, dimensões do maior volume, quantidade de volumes, tipo e observações da carga.
+/// No fluxo do pedido vem antes da escolha do veículo ([etapaDoFluxo]); cada alteração
+/// atualiza o rascunho na hora, e a lista de veículos da próxima etapa reage.
 class TelaDetalhesCarga extends StatefulWidget {
   const TelaDetalhesCarga({super.key, this.etapaDoFluxo = false});
 
@@ -70,7 +70,7 @@ class _TelaDetalhesCargaState extends State<TelaDetalhesCarga> {
     super.dispose();
   }
 
-  /// "12,5" e "12.5" valem; vazio ou invalido vira null.
+  /// "12,5" e "12.5" valem; vazio ou inválido vira null.
   double? _numero(String texto) =>
       double.tryParse(texto.trim().replaceAll(',', '.'));
 
@@ -102,8 +102,8 @@ class _TelaDetalhesCargaState extends State<TelaDetalhesCarga> {
     }
   }
 
-  /// So reclama de valor digitado: campo vazio nao mostra erro (o asterisco ja indica que
-  /// e obrigatorio e os veiculos ficam bloqueados ate preencher).
+  /// Só reclama de valor digitado: campo vazio não mostra erro (o asterisco já indica que
+  /// é obrigatório e os veículos ficam bloqueados até preencher).
   String? _erro(TextEditingController controlador) {
     final texto = controlador.text.trim();
     if (texto.isEmpty) return null;

@@ -12,8 +12,8 @@ enum _Filtro { todos, motoristas, transportadoras }
 
 enum _Ordem { preco, prazo, nota }
 
-/// Lista as ofertas de motoristas parceiros e transportadoras da regiao para o
-/// cliente comparar (preco, prazo e avaliacao) e escolher um.
+/// Lista as ofertas de motoristas parceiros e transportadoras da região para o
+/// cliente comparar (preço, prazo e avaliação) e escolher uma.
 ///
 /// Sem [pedidoId], a escolha vai para o rascunho do pedido. Com [pedidoId], o
 /// cliente escolhe outro parceiro para um pedido que voltou a "cotado" porque o
@@ -113,9 +113,9 @@ class _TelaCotacoesState extends State<TelaCotacoes> {
     final selos = <String, String>{};
     for (final o in ofertas) {
       if (o.total == menorPreco) {
-        selos[o.chave] = 'Menor preco';
+        selos[o.chave] = 'Menor preço';
       } else if (o.prazoEntregaMin == menorPrazo) {
-        selos[o.chave] = 'Mais rapido';
+        selos[o.chave] = 'Mais rápido';
       } else if (melhorNota > 0 && o.nota == melhorNota) {
         selos[o.chave] = 'Melhor avaliado';
       }
@@ -163,7 +163,7 @@ class _TelaCotacoesState extends State<TelaCotacoes> {
               Text('${km(cotacao.distanciaKm)} - ${cotacao.paradas} paradas',
                   style: const TextStyle(fontSize: 12.5, color: Cores.textoFraco)),
               const Spacer(),
-              Text('${ofertas.length} opcoes na sua regiao',
+              Text('${ofertas.length} opções na sua região',
                   style: const TextStyle(fontSize: 12.5, color: Cores.textoFraco)),
             ],
           ),
@@ -190,11 +190,11 @@ class _TelaCotacoesState extends State<TelaCotacoes> {
             children: [
               const Text('Ordenar por', style: TextStyle(fontSize: 12.5, color: Cores.textoFraco)),
               const SizedBox(width: 8),
-              _chip('Menor preco', _ordem == _Ordem.preco,
+              _chip('Menor preço', _ordem == _Ordem.preco,
                   () => setState(() => _ordem = _Ordem.preco)),
               _chip('Menor prazo', _ordem == _Ordem.prazo,
                   () => setState(() => _ordem = _Ordem.prazo)),
-              _chip('Melhor avaliacao', _ordem == _Ordem.nota,
+              _chip('Melhor avaliação', _ordem == _Ordem.nota,
                   () => setState(() => _ordem = _Ordem.nota)),
             ],
           ),

@@ -1,6 +1,6 @@
 import '../modelos/modelos.dart';
 
-/// Regras de validacao da carga e de compatibilidade com o veiculo. Funcoes puras (sem
+/// Regras de validação da carga e de compatibilidade com o veículo. Funções puras (sem
 /// estado nem tela), para testar isoladas. A API repete a mesma regra em
 /// api/src/compatibilidade.js: se mudar aqui, mude la tambem.
 
@@ -13,7 +13,7 @@ class ResultadoCompatibilidade {
 
   final bool compativel;
 
-  /// Por que o veiculo nao serve (null quando compativel).
+  /// Por que o veículo não serve (null quando compatível).
   final String? motivo;
 }
 

@@ -191,7 +191,7 @@ class _TelaOpcoesFreteState extends State<TelaOpcoesFrete> {
               ),
               const SizedBox(height: 16),
               const TituloSecao(
-                'Veículo',
+                'Veículo para este frete',
                 acao: IconeInfoSecao(secao: SecaoAjuda.veiculo),
               ),
               if (!rascunho.cargaValida) ...[

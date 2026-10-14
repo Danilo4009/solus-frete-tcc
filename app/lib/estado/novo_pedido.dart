@@ -96,7 +96,7 @@ class NovoPedido extends ChangeNotifier {
     final faltas = <String>[];
     if (!roteiroCompleto) faltas.add('Informe coleta e entrega');
     if (!cargaValida) faltas.add('Preencha os detalhes da carga');
-    if (categoria == null) faltas.add('Selecione o veiculo');
+    if (categoria == null) faltas.add('Selecione o veículo');
     if (ofertaEscolhida == null) faltas.add('Escolha um parceiro');
     if (formaPagamento == null) faltas.add('Selecione a forma de pagamento');
     if (agendado && quando == null) faltas.add('Informe a data e hora do agendamento');
@@ -105,7 +105,7 @@ class NovoPedido extends ChangeNotifier {
     }
     final escolhido = categoria;
     if (escolhido != null && cargaValida && !compatibilidadeDe(escolhido)!.compativel) {
-      faltas.add('Escolha um veiculo compativel com a carga');
+      faltas.add('Escolha um veículo compatível com a carga');
     }
     return faltas;
   }
@@ -199,7 +199,7 @@ class NovoPedido extends ChangeNotifier {
       final compat = verificarCompatibilidade(carga, escolhido);
       if (!compat.compativel) {
         avisoVeiculoDesmarcado =
-            '${escolhido.nome} foi desmarcado: ${compat.motivo}. Escolha outro veiculo.';
+            '${escolhido.nome} foi desmarcado: ${compat.motivo}. Escolha outro veículo.';
         categoria = null;
         servicosSelecionados.clear();
         cotacao = null;
